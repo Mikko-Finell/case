@@ -10,7 +10,6 @@ template<class T>
 class GarbageCollector {
     T * current, * next;
     const int array_size;
-    int obj_count = 0;
     std::vector<int> live;
     std::vector<int> dead;
 
@@ -57,11 +56,10 @@ public:
                 dead.push_back(i);
         }
 
-        obj_count = live.size();
-
         if (dead.empty() || live.empty())
             return;
 
+        const auto obj_count = live.size();
         for (auto i = 0; i < obj_count; i++) {
             const auto j = (obj_count - 1) - i;
             if (live[j] < dead[i])
@@ -72,7 +70,7 @@ public:
     }
 
     inline int count() const {
-        return obj_count;
+        return live.size();
     }
 };
 
