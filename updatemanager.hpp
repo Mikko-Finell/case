@@ -15,7 +15,7 @@ public:
         assert(current != next);
         assert(current != nullptr);
         assert(next != nullptr);
-        assert(size > 0);
+        assert(size >= 0);
         assert(size % 2 == 0);
         if (current < next)
             assert(current + size <= next);
