@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <vector>
+#include <algorithm>
 
 namespace CASE {
 
@@ -42,7 +43,6 @@ public:
         else
             assert(a >= b + size);
         assert(size >= 2);
-        assert(size % 2 == 0);
     }
 
     void copy_and_compact() {
@@ -56,16 +56,16 @@ public:
                 dead.push_back(i);
         }
 
-        if (dead.empty() || live.empty())
+        const auto live_count = live.size(), dead_count = dead.size();
+        if (live_count == 0 || dead_count == 0)
             return;
 
-        const auto obj_count = live.size();
-        for (auto i = 0; i < obj_count; i++) {
-            const auto j = (obj_count - 1) - i;
-            if (live[j] < dead[i])
+        std::reverse(live.begin(), live.end());
+        const auto count = std::min(live_count, dead_count);
+        for (auto i = 0; i < count; i++) {
+            if (live[i] < dead[i])
                 break;
-            
-            move(live[j], dead[i]);
+            move(live[i], dead[i]);
         }
     }
 
