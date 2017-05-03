@@ -29,10 +29,10 @@ public:
     }
 };
 
-template<class JobType>
+template<class T>
 class Parallel : public Base {
 protected:
-    std::list<JobType> jobs;
+    std::list<T> jobs;
 
 public:
     double job_duration() const override {
