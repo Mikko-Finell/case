@@ -92,9 +92,6 @@ bool fuzz() {
         const auto test_gens = gen(rng);
         const auto test_pop = pop(rng);
 
-        std::cout << "Running " << test_gens << " generations with "
-            << test_pop << " agents" << std::endl;
-
         futures.push_back(std::async(std::launch::async,
             [test_pop, test_gens]{
                 const auto seed = std::random_device()();
