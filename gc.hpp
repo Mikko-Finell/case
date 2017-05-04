@@ -62,14 +62,14 @@ public:
 
         std::reverse(live.begin(), live.end());
         const auto count = std::min(live_count, dead_count);
-        for (auto i = 0; i < count; i++) {
+        for (std::size_t i = 0; i < count; i++) {
             if (live[i] < dead[i])
                 break;
             move(live[i], dead[i]);
         }
     }
 
-    inline int count() const {
+    inline std::size_t count() const {
         return live.size();
     }
 };

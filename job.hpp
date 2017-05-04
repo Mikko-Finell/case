@@ -13,9 +13,9 @@ class Base {
     virtual void execute() = 0;
 
 protected:
-    CASE::Timer timer;
-    const int n_threads;
     const int nth;
+    const int n_threads;
+    CASE::Timer timer;
 
     std::condition_variable cv_done;
     std::condition_variable cv_launch;
