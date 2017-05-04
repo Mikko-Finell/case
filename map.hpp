@@ -38,7 +38,7 @@ public:
     double job_duration() const override {
         double total_duration = 0.0;
         for (const auto & job : jobs)
-            total_duration += job.dt();
+            total_duration += job.duration();
         return total_duration / jobs.size();
     }
 

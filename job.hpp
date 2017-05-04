@@ -50,7 +50,7 @@ public:
         flag_terminate = true;
     }
 
-    double dt() const {
+    double duration() const {
         return timer.dt();
     }
 
