@@ -9,24 +9,17 @@ namespace CASE {
 namespace update {
 
 template<class T>
-class Strategy {
+class Serial : public map::Serial {
 public:
-    virtual void launch(T * current, T * next, const int size) {}
-};
-
-template<class T>
-class Serial : public Strategy<T>, public map::Serial {
-public:
-    void launch(T * current, T * next, const int size) override {
-        assert(current != next);
+    void launch(T * current, T * next, const int size) {
         assert(current != nullptr);
         assert(next != nullptr);
+        assert(current != next);
         assert(size >= 0);
-        assert(size % 2 == 0);
         if (current < next)
             assert(current + size <= next);
         else
-            assert(current > next + size);
+            assert(current >= next + size);
 
         this->timer.start();
         for (int i = 0; i < size; i++)
@@ -60,9 +53,18 @@ public:
 };
 
 template<class T>
-class Parallel : public Strategy<T>, public map::Parallel<Job<T>> {
+class Parallel : public map::Parallel<Job<T>> {
 public:
-    void launch(T * current, T * next, const int size) override {
+    void launch(T * current, T * next, const int size) {
+        assert(current != nullptr);
+        assert(next != nullptr);
+        assert(current != next);
+        assert(size >= 0);
+        if (current < next)
+            assert(current + size <= next);
+        else
+            assert(current >= next + size);
+
         for (auto & job : this->jobs) {
             job.upload(current, next, size);
             job.launch();
@@ -70,36 +72,80 @@ public:
     }
 
     void terminate() override {
-        if (!this->jobs.empty()) {
-            for (auto & job : this->jobs)
-                job.terminate();
-
-            launch(nullptr, nullptr, 0);
-            for (auto & job : this->jobs) {
-                if (job.thread.joinable())
-                    job.thread.join();
-            }
-            this->jobs.clear();
+        for (auto & job : this->jobs) {
+            job.terminate();
+            job.upload(nullptr, nullptr, 0);
+            job.launch();
+            job.thread.join();
         }
+        this->jobs.clear();
     }
 };
 
 template<class T>
-class Manager : private map::Base {
+class Manager {
     Serial<T> serial;
     Parallel<T> parallel;
-    Strategy<T> & strategy = serial;
     CASE::Trigger trigger;
 
+    enum class Strategy { Serial, Parallel };
+    Strategy strategy = Strategy::Serial;
+
+    enum class Access { Allowed, Restricted };
+    Access access = Access::Restricted;
+
 public:
-    Manager(const CASE::Trigger & tr = CASE::Trigger{1000.0/60.0, 0.2})
+    Manager(CASE::Trigger && tr = CASE::Trigger{1000.0/60.0, 0.2})
         : trigger(tr)
     {
+        serial.init();
+        parallel.init();
+        serial.wait();
+        parallel.wait();
+        access = Access::Allowed;
     }
-    // init
-    // wait
-    // launch
-    // terminate
+
+    ~Manager() {
+        serial.terminate();
+        parallel.terminate();
+    }
+
+    void set_trigger(CASE::Trigger && tr) {
+        trigger = tr;
+    }
+
+    Manager & wait() {
+        if (access == Access::Allowed)
+            return *this;
+
+        if (strategy == Strategy::Serial) {
+            serial.wait();
+            if (trigger.update(serial.job_duration())) {
+                strategy = Strategy::Parallel;
+            }
+        }
+        else {
+            parallel.wait();
+            if (!trigger.update(parallel.job_duration())) {
+                strategy = Strategy::Serial;
+            }
+        }
+
+        access = Access::Allowed;
+        return *this;
+    }
+
+    Manager & launch(T * current, T * next, const int size) {
+        assert(access == Access::Allowed);
+
+        if (strategy == Strategy::Serial)
+            serial.launch(current, next, size);
+        else
+            parallel.launch(current, next, size);
+
+        access = Access::Restricted;
+        return *this;
+    }
 };
 
 } // update
