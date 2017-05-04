@@ -9,7 +9,7 @@ namespace CASE {
 
 class Trigger {
     std::deque<double> values;
-    const double low, high;
+    double low, high;
     bool state = false;
 
 public:
