@@ -16,6 +16,7 @@ public:
         assert(next != nullptr);
         assert(current != next);
         assert(size >= 0);
+
         if (current < next)
             assert(current + size <= next);
         else
@@ -36,9 +37,9 @@ class Job : public job::Base {
             next[n] = current[n].update(current[n]);
     }
 
-    T * current;
-    T * next;
-    volatile int array_size;
+    T * current = nullptr;
+    T * next = nullptr;
+    volatile int array_size = 0;
 
 public:
     Job(const int nth, const std::size_t n_threads)
@@ -60,6 +61,7 @@ public:
         assert(next != nullptr);
         assert(current != next);
         assert(size >= 0);
+
         if (current < next)
             assert(current + size <= next);
         else
@@ -83,72 +85,28 @@ public:
 };
 
 template<class T>
-class Manager {
-    Serial<T> serial;
-    Parallel<T> parallel;
-    CASE::Trigger trigger;
-
-    enum class Strategy { Serial, Parallel };
-    Strategy strategy = Strategy::Serial;
-
-    enum class Access { Allowed, Restricted };
-    Access access = Access::Restricted;
-
+class Manager : public map::Manager<Serial<T>, Parallel<T>> {
 public:
-    Manager(CASE::Trigger && tr = CASE::Trigger{1000.0/60.0, 0.2})
-        : trigger(tr)
-    {
-        serial.init();
-        parallel.init();
-        serial.wait();
-        parallel.wait();
-        access = Access::Allowed;
-    }
-
-    ~Manager() {
-        serial.terminate();
-        parallel.terminate();
-    }
-
-    void set_trigger(CASE::Trigger && tr) {
-        trigger = tr;
-    }
-
-    Manager & wait() {
-        if (access == Access::Allowed)
-            return *this;
-
-        if (strategy == Strategy::Serial) {
-            serial.wait();
-            if (trigger.update(serial.job_duration())) {
-                strategy = Strategy::Parallel;
-            }
-        }
-        else {
-            parallel.wait();
-            if (!trigger.update(parallel.job_duration())) {
-                strategy = Strategy::Serial;
-            }
-        }
-
-        access = Access::Allowed;
-        return *this;
-    }
+    using map::Manager<Serial<T>, Parallel<T>>::Manager;
 
     Manager & launch(T * current, T * next, const int size) {
-        assert(access == Access::Allowed);
+        assert(this->access == map::Access::Open);
 
-        if (strategy == Strategy::Serial)
-            serial.launch(current, next, size);
+        if (this->strategy == map::Strategy::Serial)
+            this->serial.launch(current, next, size);
         else
-            parallel.launch(current, next, size);
+            this->parallel.launch(current, next, size);
 
-        access = Access::Restricted;
+        this->access = map::Access::Closed;
         return *this;
     }
 };
 
 } // update
+
+template<class T>
+using Update = update::Manager<T>;
+
 } // CASE
 
 #endif // UPDATEM

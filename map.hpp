@@ -39,7 +39,11 @@ public:
         double total_duration = 0.0;
         for (const auto & job : jobs)
             total_duration += job.duration();
-        return total_duration / jobs.size();
+        return total_duration;
+    }
+
+    double actual_duration() const {
+        return job_duration() / jobs.size();
     }
 
     void init() override {
@@ -54,6 +58,62 @@ public:
     void wait() override {
         for (auto & job : jobs)
             job.wait();
+    }
+};
+
+
+enum class Strategy { Serial, Parallel };
+enum class Access { Open, Closed };
+
+template<class S, class P>
+class Manager {
+protected:
+    S serial;
+    P parallel;
+    CASE::Trigger trigger;
+
+    Strategy strategy = Strategy::Serial;
+    Access access = Access::Closed;
+
+public:
+    explicit Manager(CASE::Trigger && tr = CASE::Trigger{1000.0/60.0, 0.2})
+        : trigger(tr)
+    {
+        serial.init();
+        parallel.init();
+        serial.wait();
+        parallel.wait();
+        access = Access::Open;
+    }
+
+    ~Manager() {
+        serial.terminate();
+        parallel.terminate();
+    }
+
+    void set_trigger(CASE::Trigger && tr) {
+        trigger = tr;
+    }
+
+    Manager & wait() {
+        if (access == Access::Open)
+            return *this;
+
+        if (strategy == Strategy::Serial) {
+            serial.wait();
+            if (trigger.update(serial.job_duration())) {
+                strategy = Strategy::Parallel;
+            }
+        }
+        else {
+            parallel.wait();
+            if (trigger.update(parallel.job_duration()) == false) {
+                strategy = Strategy::Serial;
+            }
+        }
+
+        access = Access::Open;
+        return *this;
     }
 };
 
