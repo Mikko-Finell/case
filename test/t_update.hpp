@@ -96,7 +96,7 @@ bool parallel_02() {
 
 bool manager_01() {
     constexpr auto SIZE = 100;
-    CASE::update::Manager<t1_Agent> updm;
+    CASE::Update<t1_Agent> updm;
     t1_Agent current[SIZE];
     t1_Agent next[SIZE];
 
@@ -109,7 +109,7 @@ bool manager_01() {
 
 bool manager_hi() {
     constexpr auto SIZE = 100;
-    CASE::update::Manager<t1_Agent> updm{CASE::Trigger{100, 0.1}};
+    CASE::Update<t1_Agent> updm{CASE::Trigger{100, 0.1}};
     t1_Agent current[SIZE];
     t1_Agent next[SIZE];
     for (auto agent : current)
@@ -137,7 +137,7 @@ bool manager_lo_hi() {
         a.update = update;
     t2_Agent next[SIZE];
 
-    CASE::update::Manager<t2_Agent> updm{CASE::Trigger{50, 0.1}};
+    CASE::Update<t2_Agent> updm{CASE::Trigger{50, 0.1}};
     CASE::ArrayBuffer<t2_Agent> arb{current, next};
 
     for (int i = 0; i < generations; i++) {
@@ -168,7 +168,7 @@ bool manager_hi_lo() {
         a.sleep = 10;
     }
 
-    CASE::update::Manager<t2_Agent> updm{CASE::Trigger{50, 0.1}};
+    CASE::Update<t2_Agent> updm{CASE::Trigger{50, 0.1}};
     CASE::ArrayBuffer<t2_Agent> arb{current, next};
 
     for (int i = 0; i < generations; i++) {
@@ -203,7 +203,7 @@ bool manager_rand_sleep() {
     for (auto & a : current)
         a.update = update;
 
-    CASE::update::Manager<t2_Agent> updm{CASE::Trigger{10, 0.1}};
+    CASE::Update<t2_Agent> updm{CASE::Trigger{10, 0.1}};
     CASE::ArrayBuffer<t2_Agent> arb{current, next};
 
     const auto generations = 100;
@@ -235,7 +235,7 @@ bool manager_rand_trig() {
     for (auto & a : current)
         a.update = update;
 
-    CASE::update::Manager<t2_Agent> updm{CASE::Trigger{10, 0.1}};
+    CASE::Update<t2_Agent> updm{CASE::Trigger{10, 0.1}};
     CASE::ArrayBuffer<t2_Agent> arb{current, next};
 
     const auto generations = 100;
@@ -276,7 +276,7 @@ bool manager_rand_both() {
     for (auto & a : current)
         a.update = update;
 
-    CASE::update::Manager<t2_Agent> updm{CASE::Trigger{10, 0.1}};
+    CASE::Update<t2_Agent> updm{CASE::Trigger{10, 0.1}};
     CASE::ArrayBuffer<t2_Agent> arb{current, next};
 
     const auto generations = 100;

@@ -49,10 +49,19 @@ bool trigger02() {
     return t0 && t1 && t2 && t3;
 }
 
+bool trigger03() {
+    CASE::Trigger tr{10, 0};
+    tr.update(11);
+    assert(tr.read_state() == true);
+
+    return tr.update(100) && tr.update(120) && tr.update(130);
+}
+
 void run() {
     cpptest::Module test{"trigger"};
     test.fn("01", trigger01);
     test.fn("02", trigger02);
+    test.fn("always over", trigger03);
 }
 
 } // t_trigger
