@@ -9,9 +9,15 @@ namespace CASE {
 namespace update {
 
 template<class T>
-class Serial : public map::Serial {
+class Strategy {
 public:
-    void launch(T * current, T * next, const int size) {
+    virtual void launch(T * current, T * next, const int size) {}
+};
+
+template<class T>
+class Serial : public Strategy<T>, public map::Serial {
+public:
+    void launch(T * current, T * next, const int size) override {
         assert(current != next);
         assert(current != nullptr);
         assert(next != nullptr);
@@ -53,18 +59,17 @@ public:
     }
 };
 
-
 template<class T>
-class Parallel : public map::Parallel<Job<T>> {
+class Parallel : public Strategy<T>, public map::Parallel<Job<T>> {
 public:
-    void launch(T * current, T * next, const int size) {
+    void launch(T * current, T * next, const int size) override {
         for (auto & job : this->jobs) {
             job.upload(current, next, size);
             job.launch();
         }
     }
 
-    void terminate() {
+    void terminate() override {
         if (!this->jobs.empty()) {
             for (auto & job : this->jobs)
                 job.terminate();
@@ -83,7 +88,7 @@ template<class T>
 class Manager : private map::Base {
     Serial<T> serial;
     Parallel<T> parallel;
-    map::Base & strategy = serial;
+    Strategy<T> & strategy = serial;
     CASE::Trigger trigger;
 
 public:
