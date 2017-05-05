@@ -63,17 +63,25 @@ public:
 
 
 enum class Strategy { Serial, Parallel };
-enum class Access { Open, Closed };
 
 template<class S, class P>
 class Manager {
+    enum class Access { Open, Closed };
+    Access access = Access::Closed;
+
 protected:
+    inline void prelaunch() const {
+        assert(access == Access::Open);
+    }
+
+    inline void postlaunch() {
+        access = Access::Closed;
+    }
+
     S serial;
     P parallel;
     CASE::Trigger trigger;
-
     Strategy strategy = Strategy::Serial;
-    Access access = Access::Closed;
 
 public:
     explicit Manager(CASE::Trigger && tr = CASE::Trigger{1000.0/60.0, 0.2})

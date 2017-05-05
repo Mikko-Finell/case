@@ -79,14 +79,14 @@ public:
     using map::Manager<Serial<T>, Parallel<T>>::Manager;
 
     Manager & draw(const T * objects, sf::Vertex * vs, const int size) {
-        assert(this->access == map::Access::Open);
+        this->prelaunch();
 
         if (this->strategy == map::Strategy::Serial)
             this->serial.draw(objects, vs, size);
         else
             this->parallel.draw(objects, vs, size);
 
-        this->access = map::Access::Closed;
+        this->postlaunch();
         return *this;
     }
 };

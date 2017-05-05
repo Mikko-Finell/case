@@ -90,14 +90,14 @@ public:
     using map::Manager<Serial<T>, Parallel<T>>::Manager;
 
     Manager & launch(T * current, T * next, const int size) {
-        assert(this->access == map::Access::Open);
+        this->prelaunch();
 
         if (this->strategy == map::Strategy::Serial)
             this->serial.launch(current, next, size);
         else
             this->parallel.launch(current, next, size);
 
-        this->access = map::Access::Closed;
+        this->postlaunch();
         return *this;
     }
 };
