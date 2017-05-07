@@ -39,6 +39,9 @@ public:
                 const auto index = indices[i];
                 next[index] = current[index].update(current[index]);
             }
+            // copy the rest over without update
+            for (int i = subset; i < size; i++)
+                next[indices[i]] = current[indices[i]];
         }
         else {
             for (int i = 0; i < subset; i++)
@@ -71,6 +74,9 @@ class Job : public job::Base {
                 indices.pop_back();
                 next[index] = current[index].update(current[index]);
             }
+            for (auto i : indices)
+                next[i] = current[i];
+
             indices.clear();
         }
         else {
