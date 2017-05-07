@@ -19,6 +19,7 @@ class Agent {
     sf::Vector2f size;
     sf::Color color;
     int seed = 0;
+    int direction = 1;
 public:
     sf::Vector2f position;
     Agent() {
@@ -29,10 +30,17 @@ public:
         size = sf::Vector2f(x(rng), x(rng));
     }
     Agent update(Agent copy) {
+        /*
         std::mt19937 rng(seed);
         std::uniform_int_distribution<int> move(-1, 1);
         copy.position += sf::Vector2f(move(rng), move(rng));
         copy.seed++;
+        */
+        copy.position.x += copy.direction;
+        if (copy.position.x > 1700)
+            copy.direction = -1;
+        if (copy.position.x < 0)
+            copy.direction = 1;
         return copy;
     }
     void draw(sf::Vertex * vertices) const {
@@ -42,49 +50,67 @@ public:
 
 bool graphics_01() {
     sf::RenderWindow w{sf::VideoMode{1600, 800}, "test 01"};
+    w.setVerticalSyncEnabled(true);
     std::vector<sf::Vertex> vertices;
 
     const auto seed = std::random_device()();
     std::mt19937 rng(seed);
     std::uniform_int_distribution<int> posx(0, 1600), posy(0, 800);
 
-    constexpr auto size = 500;
+    constexpr auto size = 1000;
     Agent a[size], b[size];
     vertices.resize(size * 4);
     CASE::Update<Agent> update;
     CASE::Graphics<Agent> graphics;
     CASE::ArrayBuffer<Agent> world{a, b};
 
-    update.set_trigger(CASE::Trigger{16.7, 0.2, 1});
+    update.set_trigger(CASE::Trigger{0, 0.2, 1});
 
     for (auto & agent : b)
         agent.position = sf::Vector2f(posx(rng), posy(rng));
 
+    auto x = 500;
+    vertices.resize(x * 4);
 
     while (w.isOpen()) {
         sf::Event e;
         while (w.pollEvent(e)) {
-            if (e.type == sf::Event::KeyPressed)
-                w.close();
+            if (e.type == sf::Event::KeyPressed) {
+                if (e.key.code == sf::Keyboard::Q) {
+                    w.close();
+                }
+                if (e.key.code == sf::Keyboard::Up)
+                    x++;
+                else if (e.key.code == sf::Keyboard::Down)
+                    x--;
+                //vertices.clear();
+                vertices.resize(x * 4);
+                w.setTitle(std::to_string(x));
+                if (x > size)
+                    x = size;
+                if (x < 0)
+                    x = 0;
+            }
             if (e.type == sf::Event::Closed)
                 w.close();
+
         }
 
+        graphics.wait();
         update.wait();
+
+        w.clear(sf::Color::White);
+        w.draw(vertices.data(), vertices.size(), sf::Quads);
+        w.display();
 
         world.flip();
 
-        update.launch(world.current(), world.next(), size);
-        graphics.draw(world.current(), vertices.data(), size);
-
-        w.clear(sf::Color::White);
-        graphics.wait();
-        w.draw(vertices.data(), vertices.size(), sf::Quads);
-        w.display();
+        update.launch(world.current(), world.next(), x);
+        graphics.draw(world.current(), vertices.data(), x);
     }
 
     update.wait();
-    //graphics.wait();
+    graphics.wait();
 
     return false;
 }
