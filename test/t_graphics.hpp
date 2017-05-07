@@ -18,12 +18,11 @@ void quad(sf::Vector2f pos, sf::Vector2f size, sf::Color color,
 class Agent {
     sf::Vector2f size;
     sf::Color color;
-    int seed = 0;
-    int direction = 1;
+    int direction = 20;
 public:
+    int seed = 1;
     sf::Vector2f position;
-    Agent() {
-        seed = std::random_device()();
+    void init() {
         std::mt19937 rng(seed);
         std::uniform_int_distribution<sf::Uint8> x(150, 255);
         color = sf::Color{x(rng), x(rng), x(rng)};
@@ -38,9 +37,9 @@ public:
         */
         copy.position.x += copy.direction;
         if (copy.position.x > 1700)
-            copy.direction = -1;
+            copy.direction *= -1;
         if (copy.position.x < 0)
-            copy.direction = 1;
+            copy.direction *= -1;
         return copy;
     }
     void draw(sf::Vertex * vertices) const {
@@ -66,10 +65,13 @@ bool graphics_01() {
 
     update.set_trigger(CASE::Trigger{0, 0.2, 1});
 
-    for (auto & agent : b)
+    for (auto & agent : b) {
         agent.position = sf::Vector2f(posx(rng), posy(rng));
+        agent.seed = posx(rng);
+        agent.init();
+    }
 
-    auto x = 500;
+    auto x = 10;
     vertices.resize(x * 4);
 
     while (w.isOpen()) {
@@ -105,7 +107,7 @@ bool graphics_01() {
 
         world.flip();
 
-        update.launch(world.current(), world.next(), x);
+        update.launch(world.current(), world.next(), x, 10);
         graphics.draw(world.current(), vertices.data(), x);
     }
 

@@ -10,8 +10,8 @@ namespace t_update {
 using namespace std::chrono;
 
 class t1_Agent {
-    int sleep = 0;
 public:
+    int sleep = 0;
     bool updated = false;
     int age = 0;
     t1_Agent(int ms = 0, int a = 0) : sleep(ms), age(a) {}
@@ -76,22 +76,35 @@ bool parallel_01() {
 
 bool parallel_02() {
     constexpr auto SIZE = 100;
+    constexpr auto SUBSET = 50;
     CASE::update::Parallel<t1_Agent> upd;
     t1_Agent current[SIZE];
     t1_Agent next[SIZE];
     upd.init();
+    upd.wait();
 
-    const auto generations = 1000;
+    std::vector<bool> tests;
+    auto highest_age = 0;
+    const auto generations = 100;
     for (auto i = 0; i < generations; i++) {
-        for (auto & agent : next)
-            agent.updated = false;
-
-        upd.launch(current, next, SIZE);
+        upd.launch(current, next, SIZE, SUBSET);
         upd.wait();
+
+        auto count = 0;
+        bool was_raised = false;
+        for (auto & agent : next) {
+            if (agent.updated)
+                count++;
+            agent.updated = false;
+            if (agent.age > highest_age)
+                was_raised = true;
+        }
+        tests.push_back(was_raised);
+        tests.push_back(count == SUBSET);
     }
     upd.terminate();
-    return std::all_of(std::begin(next), std::end(next),
-        [](const t1_Agent & a){ return a.updated; });
+    return std::all_of(tests.begin(), tests.end(),
+        [](const bool b){ return b; });
 }
 
 bool manager_01() {
@@ -372,12 +385,62 @@ bool subset_manager() {
     return count == SIZE / 2;
 }
 
+bool copied() {
+    constexpr auto SIZE = 3;
+    constexpr auto SUBSET = 2;
+
+    t1_Agent current[SIZE], next[SIZE];
+    for (auto & a : current) {
+        assert(a.updated == false);
+        a.sleep = 10;
+    }
+    for (auto & a : next) {
+        assert(a.updated == false);
+    }
+
+    CASE::Update<t1_Agent> updm;
+    updm.set_trigger(CASE::Trigger{-1, 0});
+
+    updm.launch(current, next, SIZE, SUBSET).wait();
+    auto count = 0;
+    for (auto & a : next)
+        if (a.updated)
+            count++;
+    assert(count == SUBSET);
+
+    std::vector<int> updated_indices;
+    for (auto i = 0; i < SIZE; i++)
+        if (next[i].updated)
+            updated_indices.push_back(i);
+    
+    for (auto & a : current) a.updated = false;
+    for (auto & a : next) a.updated = false;
+
+    updm.launch(next, current, SIZE, SUBSET).wait();
+
+    count = 0;
+    for (auto & a : current) {
+        if (a.updated)
+            count++;
+    }
+    assert(count == SUBSET);
+
+    auto t0 = 0;
+    for (auto & a : current)
+        if (a.age >= 1)
+            t0++;
+    
+    return std::any_of(std::begin(current), std::end(current),
+        [](auto&& a){ return a.age == 2; });
+}
+
 void run() {
     auto module = new cpptest::Module{"update"};
     auto & test = *module;
 
     test.fn("subset manager", subset_manager);
     test.fn("subset serial", subset_serial);
+    test.fn("subset old are copied over", copied);
 
     const auto seed = std::random_device()();
     std::mt19937 rng(seed);
