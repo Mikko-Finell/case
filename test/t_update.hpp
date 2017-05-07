@@ -296,9 +296,100 @@ bool manager_rand_both() {
         [generations](const t2_Agent & a){ return a.age == generations - 1; });
 }
 
+class t3_agent {
+public:
+    bool updated = false;
+    t3_agent update(t3_agent next) {
+        next.updated = true;
+        return next;
+    }
+};
+
+bool subset_serial() {
+    constexpr auto SIZE = 10;
+    CASE::update::Serial<t3_agent> upd;
+    t3_agent current[SIZE], next[SIZE];
+    upd.launch(current, next, SIZE, SIZE / 2);
+    upd.wait();
+
+    int count = 0;
+    for (const auto & agent : next) {
+        if (agent.updated)
+            count++;
+    }
+    return count == SIZE / 2;
+}
+
+bool subset_parallel(int size, int subset, int gens) {
+    CASE::update::Parallel<t3_agent> upd;
+    upd.init();
+    upd.wait();
+
+    auto ptr1 = new t3_agent[size];
+    auto ptr2 = new t3_agent[size];
+    CASE::ArrayBuffer<t3_agent> arb{ptr1, ptr2};
+
+    std::vector<bool> results;
+    for (int i = 0; i < gens; i++) {
+        upd.launch(arb.current(), arb.next(), size, subset);
+        upd.wait();
+        arb.flip();
+
+        int count = 0;
+        for (auto i = 0; i < size; i++) {
+            if (arb[i].updated)
+                count++;
+            arb[i].updated = false;
+        }
+        results.push_back(count == std::min(size, subset));
+    }
+
+    upd.terminate();
+
+    delete [] ptr1;
+    delete [] ptr2;
+
+    return std::all_of(results.begin(), results.end(), [](bool b){ return b; });
+}
+
+bool subset_manager() {
+    constexpr auto SIZE = 10;
+
+    t3_agent current[SIZE], next[SIZE];
+    for (auto & a : current) assert(a.updated == false);
+    for (auto & a : next) assert(a.updated == false);
+
+    CASE::Update<t3_agent> updm;
+    CASE::ArrayBuffer<t3_agent> arb{current, next};
+
+    updm.launch(current, next, SIZE, SIZE / 2).wait();
+    
+    int count = 0;
+    for (const auto & agent : next) {
+        if (agent.updated)
+            count++;
+    }
+    return count == SIZE / 2;
+}
+
 void run() {
     auto module = new cpptest::Module{"update"};
     auto & test = *module;
+
+    test.fn("subset manager", subset_manager);
+    test.fn("subset serial", subset_serial);
+
+    const auto seed = std::random_device()();
+    std::mt19937 rng(seed);
+    std::uniform_int_distribution<int> pop(0, 100);
+    std::uniform_int_distribution<int> subset(0, 100);
+
+    for (auto i = 0; i < 100; i++) {
+        const auto x = pop(rng), y = subset(rng);
+        const auto name = std::string{"subset parallel, pop = "}
+            + std::to_string(x) + " subset = " + std::to_string(y);
+        test.fn(name, [x, y]{ return subset_parallel(x, y, 5); });
+    }
 
     test.fn("serial update 01", serial_01);
     test.fn("serial update 02", serial_02);
