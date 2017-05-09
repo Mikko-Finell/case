@@ -33,8 +33,8 @@ class Grid {
         assert(rows > 0);
         return impl::index(impl::wrap(x, columns), impl::wrap(y, rows), columns);
     }
-public:
 
+public:
     Grid(const int _cols, const int _rows) : columns(_cols), rows(_rows)
     {
         if (_cols < 1)
@@ -43,20 +43,17 @@ public:
             throw std::invalid_argument{"Rows must be >= 1"};
 
         cells = new T[columns * rows];
+        static const int range[3] = {-1, 0, 1};
 
         // for every cell
         for (auto row = 0; row < rows; row++) {
             for (auto col = 0; col < columns; col++) {
                 // for each of that cells neighbors
                 auto & cell = cells[index(col, row)];
-                for (auto y : {-1, 0, 1}) {
-                    for (auto x : {-1, 0, 1}) {
-                        assert(cell.neighbors.ptr(x, y) == nullptr);
-
+                for (const auto y : range) {
+                    for (const auto x : range) {
                         auto & neighbor = cells[index(col + x, row + y)];
-                        cell.neighbors.set(x, y, neighbor);
-
-                        assert(cell.neighbors.ptr(x, y) != nullptr);
+                        cell.neighbors.assign_cell(neighbor, x, y);
                     }
                 }
             }
