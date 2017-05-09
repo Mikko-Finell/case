@@ -2,49 +2,18 @@
 #include <vector>
 #include <cpptest.hpp>
 #include "../neighbors.hpp"
+#include "../cell.hpp"
 
 namespace t_neighbors {
 
 class Agent {
 public:
+    CASE::SimpleCell<Agent> * cell;
     bool operator==(const Agent & other) const { return &other == this; }
     bool operator!=(const Agent & other) const { return !(other == *this); }
 };
 
-template<class T>
-class _Cell {
-    T * inhabitant = nullptr;
-
-public:
-    void insert(T & t) {
-        inhabitant = &t;
-    }
-    void insert(T * t) {
-        inhabitant = t;
-    }
-    void clear() {
-        extract();
-    }
-    T * extract() {
-        auto t = inhabitant;
-        inhabitant = nullptr;
-        return t;
-    }
-    T * get() {
-        return inhabitant;
-    }
-    int inhabitants() const {
-        return is_empty() ? 0 : 1;
-    }
-    bool is_empty() const {
-        return inhabitant == nullptr;
-    }
-    bool is_occupied() const {
-        !is_empty();
-    }
-};
-
-using Cell = _Cell<Agent>;
+using Cell = CASE::SimpleCell<Agent>;
 
 void init(Cell * cells, CASE::Neighbors<Cell> & nh) {
     static const int range[3] = {-1, 0, 1};
@@ -119,22 +88,22 @@ bool transplant() {
     return nh(1, 1) == &a && nh.cell_is_empty(-1, -1);
 }
 
-bool population() {
+bool popcount() {
     bool t0 = false, t1 = false, t2 = false;
     CASE::Neighbors<Cell> nh;
     Cell cells[9];
     init(cells, nh);
     Agent a, b, c, d;
     nh.insert(a, -1, -1);
-    t0 = nh.population() == 1;
+    t0 = nh.popcount() == 1;
     nh.insert(b, 0, -1);
     nh.insert(c, 1, -1);
-    t1 = nh.population() == 3;
+    t1 = nh.popcount() == 3;
     nh.insert(d, 1, 0);
     nh.extract(1, 0);
-    t2 = nh.population() == 2;
+    t2 = nh.popcount() == 2;
     nh.insert(d).at(1, 0);
-    return t0 && t1 && nh.population() == 4;
+    return t0 && t1 && nh.popcount() == 4;
 }
 
 bool swap() {
@@ -154,8 +123,8 @@ bool replace() {
     init(cells, nh);
     Agent a, b;
     nh.insert(a).at(0, 0);
-    nh.replace(0, 0).with(b);
-    return nh(0, 0) == &b;
+    auto ptr = nh.replace(0, 0).with(b);
+    return ptr == &a && nh(0, 0) == &b;
 }
 
 bool clear() {
@@ -171,9 +140,9 @@ bool clear() {
             nh.insert(agents[i++], x, y);
     }
     nh.clear(1, 1);
-    bool t0 = nh.population() == 8;
+    bool t0 = nh.popcount() == 8;
     nh.clear();
-    return t0 && nh.population() == 0;
+    return t0 && nh.popcount() == 0;
 }
 
 void run() {
@@ -182,7 +151,7 @@ void run() {
     test.fn("insert", insert);
     test.fn("query const", qconst);
     test.fn("transplant", transplant);
-    test.fn("population", population);
+    test.fn("popcount", popcount);
     test.fn("swap", swap);
     test.fn("replace", replace);
     test.fn("clear", clear);

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <vector>
 #include <cpptest.hpp>
+#include "../cell.hpp"
 #include "../grid.hpp"
 #include "../neighbors.hpp"
 #include "../timer.hpp"
@@ -65,45 +66,13 @@ struct Pos {
     }
 };
 
-class Agent {public:Pos pos;};
-
-template<class T>
-class _Cell {
+class Agent {
 public:
-    T * inhabitant = nullptr;
-
-public:
-    CASE::Neighbors<_Cell<T>> neighbors;
-
-    void insert(T & t) {
-        inhabitant = &t;
-    }
-    void insert(T * t) {
-        inhabitant = t;
-    }
-    void clear() {
-        extract();
-    }
-    T * extract() {
-        auto t = inhabitant;
-        inhabitant = nullptr;
-        return t;
-    }
-    T * get() {
-        return inhabitant;
-    }
-    int inhabitants() const {
-        return is_empty() ? 0 : 1;
-    }
-    bool is_empty() const {
-        return inhabitant == nullptr;
-    }
-    bool is_occupied() const {
-        !is_empty();
-    }
+    Pos pos;
+    CASE::SimpleCell<Agent> * cell;
 };
 
-using Cell = _Cell<Agent>;
+using Cell = CASE::SimpleCell<Agent>;
 
 bool check(Cell & cell, const Pos & size) {
     std::vector<bool> results;
