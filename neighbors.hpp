@@ -23,7 +23,7 @@ class Neighbors {
         _inserter(Neighbors<T> & n, U * u) : neighbors(n), element(u)
         {}
 
-        decltype(auto) at(const int x, const int y) {
+        auto at(const int x, const int y) {
             return neighbors.insert(element, x, y);
         }
     };
@@ -42,7 +42,7 @@ class Neighbors {
             return *this;
         }
 
-        decltype(auto) to(const int x, const int y) {
+        auto to(const int x, const int y) {
             return neighbors.transplant(_x, _y, x, y);
         }
     };
@@ -56,7 +56,7 @@ class Neighbors {
             : neighbors(n), _x(x), _y(y)
         {}
 
-        decltype(auto) with(const int x, const int y) {
+        auto with(const int x, const int y) {
             return neighbors.swap(x, y, _x, _y);
         }
     };
@@ -67,15 +67,6 @@ class Neighbors {
         nullptr, nullptr, nullptr
     };
 
-    decltype(auto) _extract(const int x, const int y) {
-        return cells[index(x, y)]->extract();
-    }
-
-    template<class U>
-    decltype(auto) _insert(U * u, const int x, const int y) {
-        return cells[index(x, y)]->insert(u);
-    }
-
 public:
     Neighbors() {}
 
@@ -83,21 +74,26 @@ public:
         cells[index(x, y)] = &t;
     }
 
-    decltype(auto) operator()(const int x, const int y) {
+    auto operator()(const int x, const int y) {
         return cells[index(x, y)]->get();
     }
 
-    decltype(auto) operator()(const int x, const int y) const {
+    auto operator()(const int x, const int y) const {
         return cells[index(x, y)]->get();
     }
 
-    decltype(auto) extract(const int x, const int y) {
+    auto extract(const int x, const int y) {
         return cells[index(x, y)]->extract();
     }
 
     template<class U>
-    decltype(auto) insert(U & u, const int x, const int y) {
+    auto insert(U * u, const int x, const int y) {
         return cells[index(x, y)]->insert(u);
+    }
+
+    template<class U>
+    auto insert(U & u, const int x, const int y) {
+        return insert(&u, x, y);
     }
 
     template<class U>
@@ -105,21 +101,18 @@ public:
         return {*this, &u};
     }
 
-    decltype(auto) transplant(const int sx, const int sy,
-                              const int tx, const int ty)
-    {
-        _insert(_extract(sx, sy), tx, ty);
+    auto transplant(const int sx, const int sy, const int tx, const int ty) {
+        return insert(extract(sx, sy), tx, ty);
     }
 
     _transplanter transplant() {
         return {*this};
     }
 
-    decltype(auto) swap(const int ax, const int ay, const int bx, const int by)
-    {
-        const auto a = _extract(ax, ay);
+    auto swap(const int ax, const int ay, const int bx, const int by) {
+        const auto a = extract(ax, ay);
         transplant(bx, by, ax, ay); // NOTE: potential return value not handled
-        return _insert(a, bx, by);
+        return insert(a, bx, by);
     }
 
     _swapper swap(const int x, const int y) {
