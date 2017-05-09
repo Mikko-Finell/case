@@ -148,6 +148,16 @@ bool swap() {
     return nh(-1, -1) == &b && nh(1, 1) == &a;
 }
 
+bool replace() {
+    CASE::Neighbors<Cell> nh;
+    Cell cells[9];
+    init(cells, nh);
+    Agent a, b;
+    nh.insert(a).at(0, 0);
+    nh.replace(0, 0).with(b);
+    return nh(0, 0) == &b;
+}
+
 bool clear() {
     CASE::Neighbors<Cell> nh;
     Cell cells[9];
@@ -174,6 +184,7 @@ void run() {
     test.fn("transplant", transplant);
     test.fn("population", population);
     test.fn("swap", swap);
+    test.fn("replace", replace);
     test.fn("clear", clear);
 }
 }

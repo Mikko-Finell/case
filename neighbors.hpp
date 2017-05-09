@@ -59,6 +59,11 @@ class Neighbors {
         void with(const int x, const int y) {
             neighbors.swap(x, y, _x, _y);
         }
+
+        template<class U>
+        void with(U & u) {
+            neighbors.replace(_x, _y, u);
+        }
     };
 
     T * cells[9] = {
@@ -120,6 +125,16 @@ public:
     }
 
     _swapper swap(const int x, const int y) {
+        return {*this, x, y};
+    }
+
+    template<class U>
+    void replace(const int x, const int y, U & u) {
+        _extract(x, y);
+        _insert(&u, x, y);
+    }
+
+    _swapper replace(const int x, const int y) {
         return {*this, x, y};
     }
 
