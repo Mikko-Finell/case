@@ -23,6 +23,7 @@ public:
         assert(next != nullptr);
         assert(current != next);
         assert(size >= 0);
+        assert(subset >= 0);
         if (current < next)
             assert(current + size <= next);
         else
@@ -34,6 +35,9 @@ public:
             indices.resize(size);
             std::iota(indices.begin(), indices.end(), 0);
             std::shuffle(indices.begin(), indices.end(), rng);
+            auto it = indices.begin();
+            std::advance(it, subset);
+            std::sort(it, indices.end());
 
             for (int i = 0; i < subset; i++) {
                 const auto index = indices[i];
@@ -74,7 +78,7 @@ class Job : public job::Base {
                 indices.pop_back();
                 next[index] = current[index].update(current[index]);
             }
-            for (auto i : indices)
+            for (const auto i : indices)
                 next[i] = current[i];
 
             indices.clear();
@@ -111,6 +115,7 @@ public:
         assert(next != nullptr);
         assert(current != next);
         assert(size >= 0);
+        assert(subset >= 0);
 
         if (current < next)
             assert(current + size <= next);
