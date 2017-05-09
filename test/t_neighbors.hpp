@@ -48,7 +48,6 @@ using Cell = _Cell<Agent>;
 
 void init(Cell * cells, CASE::Neighbors<Cell> & nh) {
     static const int range[3] = {-1, 0, 1};
-    int count = 0;
     for (const auto y : range) {
         for (const auto x : range)
             nh.assign_cell(*(cells++), x, y);

@@ -65,18 +65,52 @@ struct Pos {
     }
 };
 
-class Cell {
+class Agent {public:Pos pos;};
+
+template<class T>
+class _Cell {
 public:
-    CASE::Neighbors<Cell> neighbors;
-    Pos pos;
+    T * inhabitant = nullptr;
+
+public:
+    CASE::Neighbors<_Cell<T>> neighbors;
+
+    void insert(T & t) {
+        inhabitant = &t;
+    }
+    void insert(T * t) {
+        inhabitant = t;
+    }
+    void clear() {
+        extract();
+    }
+    T * extract() {
+        auto t = inhabitant;
+        inhabitant = nullptr;
+        return t;
+    }
+    T * get() {
+        return inhabitant;
+    }
+    int inhabitants() const {
+        return is_empty() ? 0 : 1;
+    }
+    bool is_empty() const {
+        return inhabitant == nullptr;
+    }
+    bool is_occupied() const {
+        !is_empty();
+    }
 };
+
+using Cell = _Cell<Agent>;
 
 bool check(Cell & cell, const Pos & size) {
     std::vector<bool> results;
-
-    const auto pos = cell.pos;
-    for (auto y : {-1, 0, 1}) {
-        for (auto x : {-1, 0, 1}) {
+    const auto pos = cell.get()->pos;
+    static const int range[3] = {-1, 0, 1};
+    for (const auto y : range) {
+        for (const auto x : range) {
             auto expected_pos = Pos{pos.x + x, pos.y + y};
 
             if (pos.x + x < 0)
@@ -89,13 +123,13 @@ bool check(Cell & cell, const Pos & size) {
             if (pos.y + y == size.y)
                 expected_pos.y = 0;
 
-            if (!(cell.neighbors(x, y).pos == expected_pos)) {
+            if (!(cell.neighbors(x, y)->pos == expected_pos)) {
                 std::cout << "Error, expected " << expected_pos.x
                     << ", " << expected_pos.y << " but got "
-                    << cell.neighbors(x, y).pos.x << ", "
-                    << cell.neighbors(x, y).pos.y << std::endl;
+                    << cell.neighbors(x, y)->pos.x << ", "
+                    << cell.neighbors(x, y)->pos.y << std::endl;
             }
-            results.push_back(cell.neighbors(x, y).pos == expected_pos);
+            results.push_back(cell.neighbors(x, y)->pos == expected_pos);
         }
     }
     return std::all_of(results.begin(), results.end(), [](bool b){ return b; });
@@ -103,10 +137,13 @@ bool check(Cell & cell, const Pos & size) {
 
 bool t(int x, int y) {
     CASE::Grid<Cell> grid{x, y};
+    auto agents = new Agent[x * y];
 
     for (auto row = 0; row < y; row++) {
-        for (auto col = 0; col < x; col++)
-            grid(col, row).pos = Pos{col, row};
+        for (auto col = 0; col < x; col++) {
+            grid(col, row).insert(agents[CASE::impl::index(col, row, x)]);
+            grid(col, row).get()->pos = Pos{col, row};
+        }
     }
 
     std::vector<bool> results;
@@ -115,6 +152,7 @@ bool t(int x, int y) {
             results.push_back(check(grid(col, row), Pos{x, y}));
     }
 
+    delete [] agents;
     return std::all_of(results.begin(), results.end(), [](bool b){ return b; });
 }
 
