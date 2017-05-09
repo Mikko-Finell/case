@@ -42,8 +42,8 @@ class Neighbors {
             return *this;
         }
 
-        void to(const int x, const int y) {
-            neighbors.transplant(_x, _y, x, y);
+        decltype(auto) to(const int x, const int y) {
+            return neighbors.transplant(_x, _y, x, y);
         }
     };
 
@@ -56,13 +56,8 @@ class Neighbors {
             : neighbors(n), _x(x), _y(y)
         {}
 
-        void with(const int x, const int y) {
-            neighbors.swap(x, y, _x, _y);
-        }
-
-        template<class U>
-        decltype(auto) with(U & u) {
-            return neighbors.replace(_x, _y, u);
+        decltype(auto) with(const int x, const int y) {
+            return neighbors.swap(x, y, _x, _y);
         }
     };
 
@@ -110,7 +105,9 @@ public:
         return {*this, &u};
     }
 
-    void transplant(const int sx, const int sy, const int tx, const int ty) {
+    decltype(auto) transplant(const int sx, const int sy,
+                              const int tx, const int ty)
+    {
         _insert(_extract(sx, sy), tx, ty);
     }
 
@@ -118,24 +115,14 @@ public:
         return {*this};
     }
 
-    void swap(const int ax, const int ay, const int bx, const int by) {
+    decltype(auto) swap(const int ax, const int ay, const int bx, const int by)
+    {
         const auto a = _extract(ax, ay);
-        transplant(bx, by, ax, ay);
-        _insert(a, bx, by);
+        transplant(bx, by, ax, ay); // NOTE: potential return value not handled
+        return _insert(a, bx, by);
     }
 
     _swapper swap(const int x, const int y) {
-        return {*this, x, y};
-    }
-
-    template<class U>
-    decltype(auto) replace(const int x, const int y, U & u) {
-        auto a = _extract(x, y);
-        _insert(&u, x, y);
-        return a;
-    }
-
-    _swapper replace(const int x, const int y) {
         return {*this, x, y};
     }
 
