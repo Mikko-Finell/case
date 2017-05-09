@@ -117,16 +117,6 @@ bool swap() {
     return nh(-1, -1) == &b && nh(1, 1) == &a;
 }
 
-bool replace() {
-    CASE::Neighbors<Cell> nh;
-    Cell cells[9];
-    init(cells, nh);
-    Agent a, b;
-    nh.insert(a).at(0, 0);
-    auto ptr = nh.replace(0, 0).with(b);
-    return ptr == &a && nh(0, 0) == &b;
-}
-
 bool clear() {
     CASE::Neighbors<Cell> nh;
     Cell cells[9];
@@ -153,7 +143,6 @@ void run() {
     test.fn("transplant", transplant);
     test.fn("popcount", popcount);
     test.fn("swap", swap);
-    test.fn("replace", replace);
     test.fn("clear", clear);
 }
 }
