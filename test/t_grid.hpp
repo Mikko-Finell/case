@@ -123,7 +123,7 @@ void run() {
     twrap.fn("wrap forwards", wrap_forward);
     twrap.fn("wrap backwards", wrap_backward);
 
-    cpptest::Module tindex{"column major index"};
+    cpptest::Module tindex{"row major index"};
     for (auto x = 1; x < 100; x++) {
         const auto name = std::to_string(x) + "x1";
         tindex.fn(name, [x]{ return rm(x, 1); });

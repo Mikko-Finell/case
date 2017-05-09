@@ -18,7 +18,8 @@ void quad(sf::Vector2f pos, sf::Vector2f size, sf::Color color,
 class Agent {
     sf::Vector2f size;
     sf::Color color;
-    int direction = 20;
+    int dirx = 10;
+    int diry = 5;
 public:
     int seed = 1;
     sf::Vector2f position;
@@ -29,17 +30,16 @@ public:
         size = sf::Vector2f(x(rng), x(rng));
     }
     Agent update(Agent copy) {
-        /*
-        std::mt19937 rng(seed);
-        std::uniform_int_distribution<int> move(-1, 1);
-        copy.position += sf::Vector2f(move(rng), move(rng));
-        copy.seed++;
-        */
-        copy.position.x += copy.direction;
-        if (copy.position.x > 1700)
-            copy.direction *= -1;
-        if (copy.position.x < 0)
-            copy.direction *= -1;
+        if ((copy.position.x > 1600 - size.x && copy.dirx > 0)
+        || (copy.position.x < 0 && copy.dirx < 0))
+            copy.dirx *= -1;
+        copy.position.x += copy.dirx;
+
+        if ((copy.position.y > 800 - size.y && copy.diry > 0)
+        || (copy.position.y < 0 && copy.diry < 0))
+            copy.diry *= -1;
+        copy.position.y += copy.diry;
+
         return copy;
     }
     void draw(sf::Vertex * vertices) const {
@@ -54,7 +54,7 @@ bool graphics_01() {
 
     const auto seed = std::random_device()();
     std::mt19937 rng(seed);
-    std::uniform_int_distribution<int> posx(0, 1600), posy(0, 800);
+    std::uniform_int_distribution<int> posx(-200, 1600), posy(-100, 800);
 
     constexpr auto size = 1000;
     Agent a[size], b[size];
@@ -74,6 +74,8 @@ bool graphics_01() {
     auto x = 10;
     vertices.resize(x * 4);
 
+    auto subset = 1;
+
     while (w.isOpen()) {
         sf::Event e;
         while (w.pollEvent(e)) {
@@ -85,9 +87,12 @@ bool graphics_01() {
                     x++;
                 else if (e.key.code == sf::Keyboard::Down)
                     x--;
+                if (e.key.code == sf::Keyboard::Left)
+                    subset--;
+                else if (e.key.code == sf::Keyboard::Right)
+                    subset++;
                 //vertices.clear();
                 vertices.resize(x * 4);
-                w.setTitle(std::to_string(x));
                 if (x > size)
                     x = size;
                 if (x < 0)
@@ -101,13 +106,16 @@ bool graphics_01() {
         graphics.wait();
         update.wait();
 
+        w.setTitle("Updating " + std::to_string(subset) 
+                + " of " + std::to_string(x));
+
         w.clear(sf::Color::White);
         w.draw(vertices.data(), vertices.size(), sf::Quads);
         w.display();
 
         world.flip();
 
-        update.launch(world.current(), world.next(), x, 10);
+        update.launch(world.current(), world.next(), x, subset);
         graphics.draw(world.current(), vertices.data(), x);
     }
 

@@ -1,73 +1,180 @@
+#include <algorithm>
+#include <vector>
 #include <cpptest.hpp>
 #include "../neighbors.hpp"
 
 namespace t_neighbors {
 
-class Cell {
-    int value = 0;
+class Agent {
 public:
-    void set(const int x) { value = x; }
-    int get() const { return value; }
+    bool operator==(const Agent & other) const { return &other == this; }
+    bool operator!=(const Agent & other) const { return !(other == *this); }
 };
 
-bool set() {
-    CASE::Neighbors<Cell> nh;
-    
-    Cell cells[9];
-    int n = 0;
-    for (int y : {-1, 0, 1}) {
-        for (int x : {-1, 0, 1})
-            nh.set(x, y, cells[n++]);
-    }
+template<class T>
+class _Cell {
+    T * inhabitant = nullptr;
 
-    return &nh(-1, -1) == &cells[0]
-        && &nh( 0, -1) == &cells[1]
-        && &nh( 1, -1) == &cells[2]
-        && &nh(-1,  0) == &cells[3]
-        && &nh( 0,  0) == &cells[4]
-        && &nh( 1,  0) == &cells[5]
-        && &nh(-1,  1) == &cells[6]
-        && &nh( 0,  1) == &cells[7]
-        && &nh( 1,  1) == &cells[8];
+public:
+    void insert(T & t) {
+        inhabitant = &t;
+    }
+    void insert(T * t) {
+        inhabitant = t;
+    }
+    void clear() {
+        extract();
+    }
+    T * extract() {
+        auto t = inhabitant;
+        inhabitant = nullptr;
+        return t;
+    }
+    T * get() {
+        return inhabitant;
+    }
+    int inhabitants() const {
+        return is_empty() ? 0 : 1;
+    }
+    bool is_empty() const {
+        return inhabitant == nullptr;
+    }
+    bool is_occupied() const {
+        !is_empty();
+    }
+};
+
+using Cell = _Cell<Agent>;
+
+void init(Cell * cells, CASE::Neighbors<Cell> & nh) {
+    static const int range[3] = {-1, 0, 1};
+    int count = 0;
+    for (const auto y : range) {
+        for (const auto x : range)
+            nh.assign_cell(*(cells++), x, y);
+    }
 }
 
-bool manipulate() {
+bool assign() {
     CASE::Neighbors<Cell> nh;
-    
     Cell cells[9];
-    int n = 0;
-    for (int y : {-1, 0, 1}) {
-        for (int x : {-1, 0, 1})
-            nh.set(x, y, cells[n++]);
+    init(cells, nh);
+    Agent agents[9];
+    for (int i = 0; i < 9; i++)
+        cells[i].insert(agents[i]);
+    std::vector<bool> results;
+    static const int range[3] = {-1, 0, 1};
+    auto i = 0;
+    for (const auto y : range) {
+        for (const auto x : range)
+            results.push_back(nh(x, y) == cells[i++].get());
     }
-
-    nh(1, 1).set(123);
-    nh(-1, -1).set(321);
-    return cells[8].get() == 123 && cells[0].get() == 321;
+    return std::all_of(results.begin(), results.end(), [](bool b){return b;});
 }
 
-bool const_check(const CASE::Neighbors<Cell> & nh, const int value) {
-    return nh(1, 0).get() == 444;
+bool insert() {
+    CASE::Neighbors<Cell> nh;
+    Cell cells[9];
+    init(cells, nh);
+    Agent agents[9];
+    auto i = 0;
+    static const int range[3] = {-1, 0, 1};
+    for (const auto y : range) {
+        for (const auto x : range) {
+            nh.insert(agents[i++]).at(x, y);
+        }
+    }
+    std::vector<bool> results;
+    i = 0;
+    for (const auto y : range) {
+        for (const auto x : range) {
+            assert(nh(x, y) != nullptr);
+            results.push_back(nh(x, y) == &agents[i++]);
+        }
+    }
+
+    return std::all_of(results.begin(), results.end(), [](bool b){return b;});
+}
+
+bool const_check(const CASE::Neighbors<Cell> & nh, const Agent & ag) {
+    return nh(1, 0) == &ag;
 }
 
 bool qconst() {
     CASE::Neighbors<Cell> nh;
-    
     Cell cells[9];
-    int n = 0;
-    for (int y : {-1, 0, 1}) {
-        for (int x : {-1, 0, 1})
-            nh.set(x, y, cells[n++]);
-    }
+    init(cells, nh);
+    Agent a;
+    nh.insert(a, 1, 0);
+    return const_check(nh, a);
+}
 
-    nh(1, 0).set(444);
-    return const_check(nh, 444);
+bool transplant() {
+    CASE::Neighbors<Cell> nh;
+    Cell cells[9];
+    init(cells, nh);
+    Agent a;
+    nh.insert(a, -1, -1);
+
+    nh.transplant().from(-1, -1).to(1, 1);
+    return nh(1, 1) == &a && nh.cell_is_empty(-1, -1);
+}
+
+bool population() {
+    bool t0 = false, t1 = false, t2 = false;
+    CASE::Neighbors<Cell> nh;
+    Cell cells[9];
+    init(cells, nh);
+    Agent a, b, c, d;
+    nh.insert(a, -1, -1);
+    t0 = nh.population() == 1;
+    nh.insert(b, 0, -1);
+    nh.insert(c, 1, -1);
+    t1 = nh.population() == 3;
+    nh.insert(d, 1, 0);
+    nh.extract(1, 0);
+    t2 = nh.population() == 2;
+    nh.insert(d).at(1, 0);
+    return t0 && t1 && nh.population() == 4;
+}
+
+bool swap() {
+    CASE::Neighbors<Cell> nh;
+    Cell cells[9];
+    init(cells, nh);
+    Agent a, b;
+    nh.insert(a).at(-1, -1);
+    nh.insert(b).at(1, 1);
+    nh.swap(-1, -1).with(1, 1);
+    return nh(-1, -1) == &b && nh(1, 1) == &a;
+}
+
+bool clear() {
+    CASE::Neighbors<Cell> nh;
+    Cell cells[9];
+    init(cells, nh);
+
+    Agent agents[9];
+    auto i = 0;
+    const static int range[3] = {-1, 0, 1};
+    for (const auto y : range) {
+        for (const auto x : range)
+            nh.insert(agents[i++], x, y);
+    }
+    nh.clear(1, 1);
+    bool t0 = nh.population() == 8;
+    nh.clear();
+    return t0 && nh.population() == 0;
 }
 
 void run() {
     cpptest::Module test{"neighbors"};
-    test.fn("set", set);
-    test.fn("manipulate", manipulate);
+    test.fn("assign", assign);
+    test.fn("insert", insert);
     test.fn("query const", qconst);
+    test.fn("transplant", transplant);
+    test.fn("population", population);
+    test.fn("swap", swap);
+    test.fn("clear", clear);
 }
 }
