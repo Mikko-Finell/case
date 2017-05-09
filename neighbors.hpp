@@ -23,8 +23,8 @@ class Neighbors {
         _inserter(Neighbors<T> & n, U * u) : neighbors(n), element(u)
         {}
 
-        void at(const int x, const int y) {
-            neighbors.insert(element, x, y);
+        decltype(auto) at(const int x, const int y) {
+            return neighbors.insert(element, x, y);
         }
     };
 
@@ -61,8 +61,8 @@ class Neighbors {
         }
 
         template<class U>
-        void with(U & u) {
-            neighbors.replace(_x, _y, u);
+        decltype(auto) with(U & u) {
+            return neighbors.replace(_x, _y, u);
         }
     };
 
@@ -77,8 +77,8 @@ class Neighbors {
     }
 
     template<class U>
-    void _insert(U * u, const int x, const int y) {
-        cells[index(x, y)]->insert(u);
+    decltype(auto) _insert(U * u, const int x, const int y) {
+        return cells[index(x, y)]->insert(u);
     }
 
 public:
@@ -101,8 +101,8 @@ public:
     }
 
     template<class U>
-    void insert(U & u, const int x, const int y) {
-        cells[index(x, y)]->insert(u);
+    decltype(auto) insert(U & u, const int x, const int y) {
+        return cells[index(x, y)]->insert(u);
     }
 
     template<class U>
@@ -129,9 +129,10 @@ public:
     }
 
     template<class U>
-    void replace(const int x, const int y, U & u) {
-        _extract(x, y);
+    decltype(auto) replace(const int x, const int y, U & u) {
+        auto a = _extract(x, y);
         _insert(&u, x, y);
+        return a;
     }
 
     _swapper replace(const int x, const int y) {
@@ -148,17 +149,17 @@ public:
     }
 
     bool cell_is_empty(const int x, const int y) const {
-        return cells[index(x, y)]->inhabitants() == 0;
+        return cells[index(x, y)]->popcount() == 0;
     }
 
     bool cell_is_occupied(const int x, const int y) const {
         return !cell_is_empty(x, y);
     }
 
-    int population() const {
+    int popcount() const {
         int count = 0;
         for (auto i = 0; i < 9; i++)
-            count += cells[i]->inhabitants();
+            count += cells[i]->popcount();
 
         return count;
     }
