@@ -2,6 +2,7 @@
 #define CASE_NEIGHBORS
 
 #include <cassert>
+#include "code.hpp"
 
 namespace CASE {
 
@@ -87,22 +88,31 @@ public:
     }
 
     template<class U>
-    auto insert(U * u, const int x, const int y) {
+    Code insert(U * u, const int x, const int y) {
         return cells[index(x, y)]->insert(u);
     }
 
     template<class U>
-    auto insert(U & u, const int x, const int y) {
+    Code insert(U & u, const int x, const int y) {
         return insert(&u, x, y);
     }
 
     template<class U>
-    _inserter<U> insert(U & u) {
-        return {*this, &u};
+    _inserter<U> insert(U * u) {
+        return {*this, u};
     }
 
-    auto transplant(const int sx, const int sy, const int tx, const int ty) {
-        return insert(extract(sx, sy), tx, ty);
+    template<class U>
+    _inserter<U> insert(U & u) {
+        return insert(&u);
+    }
+
+    Code transplant(const int ax, const int ay, const int bx, const int by) {
+        if (insert(cells[index(ax, ay)]->get(), bx, by) != Code::OK)
+            return Code::Rejected;
+        else
+            extract(ax, ay);
+        return Code::OK;
     }
 
     _transplanter transplant() {
@@ -110,9 +120,23 @@ public:
     }
 
     auto swap(const int ax, const int ay, const int bx, const int by) {
-        const auto a = extract(ax, ay);
-        transplant(bx, by, ax, ay); // NOTE: potential return value not handled
-        return insert(a, bx, by);
+        auto b = extract(bx, by);
+        if (transplant(ax, ay, bx, by) == Code::OK) {
+            // a was successfully moved to b
+            if (insert(b, ax, ay) == Code::OK)
+                return Code::OK;
+            else {
+                // b cannot be moved to a. Try recover, else emit InternalError
+                if (transplant(bx, by, ax, ay) != Code::OK)
+                    return Code::InternalError;
+            }
+        }
+        if (insert(b, bx, by) == Code::OK)
+            // b could not be swapped with a but original state was recovered
+            return Code::Rejected;
+        else
+            // b is extracted but cannot be reinserted
+            return Code::InternalError;
     }
 
     _swapper swap(const int x, const int y) {
