@@ -108,10 +108,12 @@ public:
     }
 
     Code transplant(const int ax, const int ay, const int bx, const int by) {
-        if (insert(cells[index(ax, ay)]->get(), bx, by) != Code::OK)
-            return Code::Rejected;
-        else
-            extract(ax, ay);
+        if (ax != bx || ay != by) {
+            if (insert(cells[index(ax, ay)]->get(), bx, by) != Code::OK)
+                return Code::Rejected;
+            else
+                extract(ax, ay);
+        }
         return Code::OK;
     }
 
@@ -120,6 +122,9 @@ public:
     }
 
     auto swap(const int ax, const int ay, const int bx, const int by) {
+        if (ax == bx && ay == by)
+            return Code::OK;
+
         auto b = extract(bx, by);
         if (transplant(ax, ay, bx, by) == Code::OK) {
             // a was successfully moved to b
