@@ -15,7 +15,8 @@ public:
 
 using Cell = CASE::SimpleCell<Agent>;
 
-void init(Cell * cells, CASE::Neighbors<Cell> & nh) {
+template<class T>
+void init(T * cells, CASE::Neighbors<T> & nh) {
     static const int range[3] = {-1, 0, 1};
     for (const auto y : range) {
         for (const auto x : range)
