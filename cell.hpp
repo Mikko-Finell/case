@@ -9,14 +9,15 @@ namespace CASE {
 template<class T>
 class CellInterface {
 public:
-    virtual void insert(T * t)       = 0;
-    virtual void insert(T & t)       { insert(&t); }
-    virtual void clear()             = 0;
+    virtual Code insert(T * t)       = 0;
+    virtual Code insert(T & t)       { return insert(&t); }
     virtual T * extract()            = 0;
     virtual T * get()                = 0;
+    virtual void clear()             = 0;
     virtual int popcount()     const = 0;
     virtual bool is_empty()    const = 0;
     virtual bool is_occupied() const { return !is_empty(); }
+    virtual ~CellInterface()         {}
 };
 
 template<class T, int SIZE>
@@ -53,10 +54,6 @@ public:
         return insert(&t);
     }
 
-    void clear() {
-        while (extract() != nullptr);
-    }
-
     T * extract() {
         if (size == 0)
             return nullptr;
@@ -71,6 +68,10 @@ public:
             return nullptr;
         else
             return stack[size - 1];
+    }
+
+    void clear() {
+        while (extract() != nullptr);
     }
 
     int popcount() const { return size; }
