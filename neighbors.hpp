@@ -3,25 +3,31 @@
 
 #include <cassert>
 #include "code.hpp"
+#include "index.hpp"
 
 namespace CASE {
 
-template<class T>
-class Neighbors {
+namespace neighbors {
 
+template<class T>
+class OnGrid {
+
+    // fast index: since we know neighbors only access adjacent cells in a
+    // 3 by 3 matrix we can use this optimal conversion function.
+    // returns index in row-major order, computed (y+1) * row_length + (x+1)
     inline int index(const int x, const int y) const {
         assert(x > -2 && x < 2);
         assert(y > -2 && y < 2);
-        return 3 * y + x + 4; // row-major order, (y+1) * row_length + (x+1)
+        return 3 * y + x + 4;
     }
 
     template<class U>
     class _inserter {
-        Neighbors<T> & neighbors;
+        OnGrid<T> & neighbors;
         U * element;
 
     public:
-        _inserter(Neighbors<T> & n, U * u) : neighbors(n), element(u)
+        _inserter(OnGrid<T> & n, U * u) : neighbors(n), element(u)
         {}
 
         auto at(const int x, const int y) {
@@ -30,11 +36,11 @@ class Neighbors {
     };
 
     class _transplanter {
-        Neighbors<T> & neighbors;
+        OnGrid<T> & neighbors;
         int _x = 0, _y = 0;
 
     public:
-        _transplanter(Neighbors<T> & n) : neighbors(n)
+        _transplanter(OnGrid<T> & n) : neighbors(n)
         {}
 
         _transplanter & from(const int x, const int y) {
@@ -49,11 +55,11 @@ class Neighbors {
     };
 
     class _swapper {
-        Neighbors<T> & neighbors;
+        OnGrid<T> & neighbors;
         const int _x, _y;
 
     public:
-        _swapper(Neighbors<T> & n, const int x, const int y)
+        _swapper(OnGrid<T> & n, const int x, const int y)
             : neighbors(n), _x(x), _y(y)
         {}
 
@@ -69,7 +75,7 @@ class Neighbors {
     };
 
 public:
-    Neighbors() {}
+    OnGrid() {}
 
     void assign_cell(T & t, const int x, const int y) {
         cells[index(x, y)] = &t;
@@ -173,6 +179,29 @@ public:
         return count;
     }
 };
+
+template<class T>
+class Direct {
+    const int columns = 0, rows = 0;
+    T * self = nullptr;
+
+public:
+    Direct(T * t, const int c, const int r)
+        : columns(c), rows(r), self(t)
+    {}
+
+    T & operator()(const int x, const int y) const {
+        const int i = self->index;
+        const int gx = (i % columns) + x;
+        const int gy = (i / columns) + y;
+        return *(self - i + index(wrap(gx, columns), wrap(gy, rows), columns));
+    }
+};
+
+} // neighbors
+
+template<class T>
+using Neighbors = neighbors::OnGrid<T>;
 
 } // CASE
 
