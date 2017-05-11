@@ -2,25 +2,9 @@
 #define CASE_GRID
 
 #include <cassert>
+#include "index.hpp"
 
 namespace CASE {
-
-namespace impl {
-
-inline int wrap(const int n, const int max) {
-    assert(max > 0);
-    if (n < 0)
-        return ((n % max) + max) % max;
-    else
-        return n % max;
-}
-
-inline int index(const int x, const int y, const int size) {
-    assert(size > 0);
-    return y * size + x;
-}
-
-}
 
 template<class T>
 class Grid {
@@ -28,10 +12,10 @@ class Grid {
     int columns = 0;
     int rows = 0;
 
-    inline int index(int x, int y) {
+    inline int _index(int x, int y) {
         assert(columns > 0);
         assert(rows > 0);
-        return impl::index(impl::wrap(x, columns), impl::wrap(y, rows), columns);
+        return index(wrap(x, columns), wrap(y, rows), columns);
     }
 
 public:
@@ -49,10 +33,10 @@ public:
         for (auto row = 0; row < rows; row++) {
             for (auto col = 0; col < columns; col++) {
                 // for each of that cells neighbors
-                auto & cell = cells[index(col, row)];
+                auto & cell = cells[_index(col, row)];
                 for (const auto y : range) {
                     for (const auto x : range) {
-                        auto & neighbor = cells[index(col + x, row + y)];
+                        auto & neighbor = cells[_index(col + x, row + y)];
                         cell.neighbors.assign_cell(neighbor, x, y);
                     }
                 }
@@ -65,15 +49,15 @@ public:
     }
 
     T & operator()(const int x, const int y) {
-        assert(index(x, y) >= 0);
-        assert(index(x, y) < columns * rows);
-        return cells[index(x, y)];
+        assert(_index(x, y) >= 0);
+        assert(_index(x, y) < columns * rows);
+        return cells[_index(x, y)];
     }
 
     const T & operator()(const int x, const int y) const {
-        assert(index(x, y) >= 0);
-        assert(index(x, y) < columns * rows);
-        return cells[index(x, y)];
+        assert(_index(x, y) >= 0);
+        assert(_index(x, y) < columns * rows);
+        return cells[_index(x, y)];
     }
 };
 
