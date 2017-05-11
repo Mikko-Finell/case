@@ -82,41 +82,6 @@ public:
 template<class T>
 using SimpleCell = StackCell<T, 1>;
 
-template<class T>
-class StaticCell {
-    T * occupant = nullptr;
-
-public:
-    CASE::Neighbors<StaticCell<T>> neighbors;
-
-    Code insert(T * t) {
-        if (occupant == nullptr) {
-            occupant = t;
-            return Code::OK;
-        }
-        return Code::Rejected;
-    }
-
-    Code insert(T & t) {
-        return insert(&t);
-    }
-
-    T * extract() {
-        return nullptr;
-    }
-
-    T * get() {
-        return occupant;
-    }
-
-    void clear() {
-    }
-
-    int popcount() const { return is_empty() ? 0 : 1; }
-    bool is_empty() const { return occupant == nullptr; }
-    bool is_occupied() const { return !is_empty(); }
-};
-
 } // CASE
 
 #endif // CELL
