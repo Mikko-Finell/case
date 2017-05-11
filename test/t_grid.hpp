@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <vector>
 #include <cpptest.hpp>
+#include "../array_buffer.hpp"
 #include "../cell.hpp"
 #include "../grid.hpp"
 #include "../neighbors.hpp"
@@ -11,7 +12,7 @@
 namespace t_grid {
 
 bool wrap(int size, int index, int expected) {
-    return CASE::impl::wrap(index, size) == expected;
+    return CASE::wrap(index, size) == expected;
 }
 
 bool wrap_forward() {
@@ -51,7 +52,7 @@ bool rm(int cols, int rows) {
     std::vector<bool> results;
     for (int y = 0; y < rows; y++) {
         for (int x = 0; x < cols; x++) {
-            results.push_back(CASE::impl::index(x, y, cols) == i);
+            results.push_back(CASE::index(x, y, cols) == i);
             i++;
         }
     }
@@ -110,7 +111,7 @@ bool t(int x, int y) {
 
     for (auto row = 0; row < y; row++) {
         for (auto col = 0; col < x; col++) {
-            grid(col, row).insert(agents[CASE::impl::index(col, row, x)]);
+            grid(col, row).insert(agents[CASE::index(col, row, x)]);
             grid(col, row).get()->pos = Pos{col, row};
         }
     }
@@ -215,7 +216,6 @@ void run() {
         test.fn("6 x 5", []{ return t(5+1, 5); });
         test.fn("7 x 6", []{ return t(6+1, 6); });
     }
-
 }
 
 }
