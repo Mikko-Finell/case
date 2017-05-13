@@ -61,7 +61,6 @@ public:
     }
 };
 
-
 enum class Strategy { Serial, Parallel };
 
 template<class S, class P>
@@ -104,20 +103,18 @@ public:
     }
 
     Manager & wait() {
-        if (access == Access::Open)
+        if (access != Access::Open)
             return *this;
 
         if (strategy == Strategy::Serial) {
             serial.wait();
-            if (trigger.update(serial.job_duration())) {
+            if (trigger.update(serial.job_duration()))
                 strategy = Strategy::Parallel;
-            }
         }
         else {
             parallel.wait();
-            if (trigger.update(parallel.job_duration()) == false) {
+            if (trigger.update(parallel.job_duration()) == false)
                 strategy = Strategy::Serial;
-            }
         }
 
         access = Access::Open;
