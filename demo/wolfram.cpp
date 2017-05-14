@@ -105,12 +105,6 @@ struct Wolframs_Rules {
                 agent.index = index++;
             }
         }
-        CASE::Random rng;
-        for (auto x = 0; x < COLUMNS; x++) {
-            auto & agent = agents[CASE::index(x, 0, COLUMNS)];
-            //if (rng(1, 100) < 50)
-                //agent.live = true;
-        }
         for (auto x = 0; x < COLUMNS; x++) {
             auto & agent = agents[CASE::index(x, 1, COLUMNS)];
             agent.active = true;
