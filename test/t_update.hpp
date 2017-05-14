@@ -15,11 +15,10 @@ public:
     bool updated = false;
     int age = 0;
     t1_Agent(int ms = 0, int a = 0) : sleep(ms), age(a) {}
-    t1_Agent update(t1_Agent&) {
-        t1_Agent next{sleep, this->age + 1};
+    void update(t1_Agent & next) {
+        next.age = age + 1;
         next.updated = true;
         std::this_thread::sleep_for(milliseconds(sleep));
-        return next;
     }
 };
 
@@ -29,7 +28,7 @@ public:
     bool updated = false;
     int age = 0;
     t2_Agent(int ms = 0, int a = 0) : sleep(ms), age(a) {}
-    std::function<t2_Agent(t2_Agent&)> update;
+    std::function<void(t2_Agent&)> update;
 };
 
 bool serial_01() {
@@ -122,7 +121,8 @@ bool manager_01() {
 
 bool manager_hi() {
     constexpr auto SIZE = 100;
-    CASE::Update<t1_Agent> updm{CASE::Trigger{100, 0.1}};
+    CASE::Update<t1_Agent> updm;
+    updm.trigger = CASE::Trigger{100, 0.1};
     t1_Agent current[SIZE];
     t1_Agent next[SIZE];
     for (auto agent : current)
@@ -135,13 +135,11 @@ bool manager_hi() {
 }
 
 bool manager_lo_hi() {
-    auto update = [] (t2_Agent& ag) {
-        std::this_thread::sleep_for(milliseconds(ag.sleep));
-        t2_Agent next = ag;
-        next.sleep = ag.sleep + 1;
-        next.age = ag.age + 1;
+    auto update = [] (t2_Agent & next) {
+        std::this_thread::sleep_for(milliseconds(next.sleep));
+        next.sleep++;
+        next.age++;
         next.updated = true;
-        return next;
     };
     constexpr auto SIZE = 10;
     const auto generations = 10;
@@ -150,7 +148,8 @@ bool manager_lo_hi() {
         a.update = update;
     t2_Agent next[SIZE];
 
-    CASE::Update<t2_Agent> updm{CASE::Trigger{50, 0.1}};
+    CASE::Update<t2_Agent> updm;
+    updm.trigger = CASE::Trigger{50, 0.1};
     CASE::ArrayBuffer<t2_Agent> arb{current, next};
 
     for (int i = 0; i < generations; i++) {
@@ -165,13 +164,11 @@ bool manager_lo_hi() {
 }
 
 bool manager_hi_lo() {
-    auto update = [] (t2_Agent& ag) {
-        std::this_thread::sleep_for(milliseconds(ag.sleep));
-        t2_Agent next = ag;
-        next.sleep = std::max(ag.sleep - 1, 0);
-        next.age = ag.age + 1;
+    auto update = [] (t2_Agent & next) {
+        std::this_thread::sleep_for(milliseconds(next.sleep));
+        next.sleep = std::max(next.sleep - 1, 0);
+        next.age++;
         next.updated = true;
-        return next;
     };
     constexpr auto SIZE = 10;
     const auto generations = 10;
@@ -181,7 +178,8 @@ bool manager_hi_lo() {
         a.sleep = 10;
     }
 
-    CASE::Update<t2_Agent> updm{CASE::Trigger{50, 0.1}};
+    CASE::Update<t2_Agent> updm; 
+    updm.trigger = CASE::Trigger{50, 0.1};
     CASE::ArrayBuffer<t2_Agent> arb{current, next};
 
     for (int i = 0; i < generations; i++) {
@@ -200,23 +198,22 @@ bool manager_rand_sleep() {
     std::mt19937 rng(seed);
     std::uniform_int_distribution<int> dist(0, 2);
 
-    auto update = [] (t2_Agent& ag) {
+    auto update = [] (t2_Agent & next) {
         const auto seed = std::random_device()();
         std::mt19937 rng(seed);
         std::uniform_int_distribution<int> dist(0, 2);
 
         std::this_thread::sleep_for(milliseconds(dist(rng)));
-        t2_Agent next = ag;
-        next.age = ag.age + 1;
+        next.age = next.age + 1;
         next.updated = true;
-        return next;
     };
     constexpr auto SIZE = 10;
     t2_Agent current[SIZE], next[SIZE];
     for (auto & a : current)
         a.update = update;
 
-    CASE::Update<t2_Agent> updm{CASE::Trigger{10, 0.1}};
+    CASE::Update<t2_Agent> updm;
+    updm.trigger = CASE::Trigger{10, 0.1};
     CASE::ArrayBuffer<t2_Agent> arb{current, next};
 
     const auto generations = 100;
@@ -236,19 +233,18 @@ bool manager_rand_trig() {
     std::mt19937 rng(seed);
     std::uniform_int_distribution<int> dist(0, 30);
 
-    auto update = [] (t2_Agent& ag) {
+    auto update = [] (t2_Agent & next) {
         std::this_thread::sleep_for(milliseconds(2));
-        t2_Agent next = ag;
-        next.age = ag.age + 1;
+        next.age = next.age + 1;
         next.updated = true;
-        return next;
     };
     constexpr auto SIZE = 10;
     t2_Agent current[SIZE], next[SIZE];
     for (auto & a : current)
         a.update = update;
 
-    CASE::Update<t2_Agent> updm{CASE::Trigger{10, 0.1}};
+    CASE::Update<t2_Agent> updm;
+    updm.trigger = CASE::Trigger{10, 0.1};
     CASE::ArrayBuffer<t2_Agent> arb{current, next};
 
     const auto generations = 100;
@@ -258,7 +254,7 @@ bool manager_rand_trig() {
         if (dist(rng) < 15) {
             const auto midline = double(dist(rng));
             const auto tolerance = double(dist(rng)) / 10;
-            updm.set_trigger(CASE::Trigger{midline, tolerance});
+            updm.trigger = CASE::Trigger{midline, tolerance};
         }
     }
 
@@ -273,14 +269,13 @@ bool manager_rand_both() {
     std::mt19937 rng(seed);
     std::uniform_int_distribution<int> dist(0, 30);
 
-    auto update = [] (t2_Agent& ag) {
+    auto update = [] (t2_Agent & next) {
         const auto seed = std::random_device()();
         std::mt19937 rng(seed);
         std::uniform_int_distribution<int> dist(0, 2);
 
         std::this_thread::sleep_for(milliseconds(dist(rng)));
-        t2_Agent next = ag;
-        next.age = ag.age + 1;
+        next.age++;
         next.updated = true;
         return next;
     };
@@ -289,7 +284,8 @@ bool manager_rand_both() {
     for (auto & a : current)
         a.update = update;
 
-    CASE::Update<t2_Agent> updm{CASE::Trigger{10, 0.1}};
+    CASE::Update<t2_Agent> updm;
+    updm. trigger = CASE::Trigger{10, 0.1};
     CASE::ArrayBuffer<t2_Agent> arb{current, next};
 
     const auto generations = 100;
@@ -299,7 +295,7 @@ bool manager_rand_both() {
         if (dist(rng) < 15) {
             const auto midline = double(dist(rng));
             const auto tolerance = double(dist(rng)) / 10;
-            updm.set_trigger(CASE::Trigger{midline, tolerance});
+            updm.trigger = CASE::Trigger{midline, tolerance};
         }
     }
 
@@ -312,9 +308,8 @@ bool manager_rand_both() {
 class t3_agent {
 public:
     bool updated = false;
-    t3_agent update(t3_agent next) {
+    void update(t3_agent & next) {
         next.updated = true;
-        return next;
     }
 };
 
@@ -399,7 +394,7 @@ bool copied() {
     }
 
     CASE::Update<t1_Agent> updm;
-    updm.set_trigger(CASE::Trigger{-1, 0});
+    updm.trigger = CASE::Trigger{-1, 0};
 
     updm.launch(current, next, SIZE, SUBSET).wait();
     auto count = 0;
@@ -438,8 +433,8 @@ void run() {
     auto module = new cpptest::Module{"update"};
     auto & test = *module;
 
-    test.fn("subset manager", subset_manager);
     test.fn("subset serial", subset_serial);
+    test.fn("subset manager", subset_manager);
     test.fn("subset old are copied over", copied);
 
     const auto seed = std::random_device()();

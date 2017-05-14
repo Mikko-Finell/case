@@ -35,10 +35,10 @@ bool sleep_fzz() {
                     CASE::Timer timer;
                     timer.start();
                     std::this_thread::sleep_for(milliseconds(t));
-                    timer.stop();
+                    const auto dt = timer.reset();
                     const auto accuracy = t < 10 ? 0.1 : 0.01;
-                    return t * (1.0 - accuracy) < timer.dt()
-                           && t * (1.0 + accuracy) > timer.dt();
+                    return t * (1.0 - accuracy) < dt
+                           && t * (1.0 + accuracy) > dt;
                 }));
             const std::string name = "Sleep " + std::to_string(t) + " ms";
             fuzz.fn(name, [&futures, &results, i]{
