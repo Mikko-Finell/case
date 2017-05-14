@@ -1,6 +1,8 @@
 #ifndef CASE_GRAPHM
 #define CASE_GRAPHM
 
+#include <SFML/Graphics.hpp>
+
 #include "map.hpp"
 #include "job.hpp"
 #include "trigger.hpp"
@@ -26,9 +28,9 @@ public:
 template<class T>
 class Job : public job::Base {
     void execute() override {
-        const auto count = array_size;
-        for (auto n = nth; n < count; n += n_threads)
-            objects[n].draw(vertices + n * 4);
+        const int count = array_size;
+        for (auto i = nth; i < count; i += n_threads)
+            objects[i].draw(vertices + i * 4);
     }
 
     const T * objects = nullptr;
@@ -75,19 +77,39 @@ public:
 
 template<class T>
 class Manager : public map::Manager<Serial<T>, Parallel<T>> {
+    sf::RenderWindow * window = nullptr;
+    std::vector<sf::Vertex> vertices[2];
+    ArrayBuffer<std::vector<sf::Vertex>> vs{&vertices[0], &vertices[1]};
+
 public:
-    using map::Manager<Serial<T>, Parallel<T>>::Manager;
+    Manager(sf::RenderWindow & w)
+        : map::Manager<Serial<T>, Parallel<T>>::Manager{},
+        window(&w)
+    {
+    }
 
-    Manager & draw(const T * objects, sf::Vertex * vs, const int size) {
+    Manager & draw(const T * objects, const int size) {
         this->prelaunch();
+        assert(window != nullptr);
 
+        vs.flip(); // swap buffers
+        vs.next()->resize(size * 4);
         if (this->strategy == map::Strategy::Serial)
-            this->serial.draw(objects, vs, size);
+            this->serial.draw(objects, vs.next()->data(), size);
         else
-            this->parallel.draw(objects, vs, size);
+            this->parallel.draw(objects, vs.next()->data(), size);
 
         this->postlaunch();
         return *this;
+    }
+
+    void clear(const sf::Color color = sf::Color::White) {
+        window->clear(color);
+    }
+
+    void display() {
+        window->draw(vs.current()->data(), vs.current()->size(), sf::Quads);
+        window->display();
     }
 };
 
