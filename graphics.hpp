@@ -107,8 +107,13 @@ public:
         window->clear(color);
     }
 
+    void swapbuffers() {
+        vs.flip();
+    }
+
     void display() {
-        window->draw(vs.current()->data(), vs.current()->size(), sf::Quads);
+        auto & current = *vs.current();
+        window->draw(current.data(), current.size(), sf::Quads);
         window->display();
     }
 };
