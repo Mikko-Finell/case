@@ -1,6 +1,7 @@
 #ifndef CASE_UPDATEM
 #define CASE_UPDATEM
 
+//#include <cstring>
 #include <numeric>
 #include <vector>
 
@@ -10,7 +11,6 @@
 
 namespace CASE {
 namespace update {
-
 template<class T>
 class Serial : public map::Serial {
     std::random_device rd;
@@ -24,6 +24,7 @@ public:
         assert(current != next);
         assert(size >= 0);
         assert(subset >= 0);
+
         if (current < next)
             assert(current + size <= next);
         else
@@ -31,28 +32,27 @@ public:
 
         this->timer.start();
 
+        // TODO check whether memmove is faster than current mechanism
+        //std::memmove(next, current, size); 
+        for (auto i = 0; i < size; i++)
+            next[i] = current[i];
+
         if (subset < size) {
             indices.resize(size);
             std::iota(indices.begin(), indices.end(), 0);
             std::shuffle(indices.begin(), indices.end(), rng);
-            auto it = indices.begin();
-            std::advance(it, subset);
-            std::sort(it, indices.end());
 
             for (int i = 0; i < subset; i++) {
                 const auto index = indices[i];
-                next[index] = current[index].update(current[index]);
+                current[index].update(next[index]);
             }
-            // copy the rest over without update
-            for (int i = subset; i < size; i++)
-                next[indices[i]] = current[indices[i]];
         }
         else {
-            for (int i = 0; i < subset; i++)
-                next[i] = current[i].update(current[i]);
+            for (int i = 0; i < size; i++)
+                current[i].update(next[i]);
         }
 
-        this->timer.stop();
+        this->timer.reset();
     }
 
     void launch(T * current, T * next, const int size) {
@@ -67,26 +67,26 @@ class Job : public job::Base {
     std::vector<int> indices;
 
     void execute() override {
+        for (auto i = nth; i < array_size; i += n_threads) {
+            indices.push_back(i);
+            next[i] = current[i];
+        }
         if (subset < array_size) {
-            for (auto i = nth; i < array_size; i += n_threads)
-                indices.push_back(i);
-            
             std::shuffle(indices.begin(), indices.end(), rng);
 
             for (auto i = nth; i < subset; i += n_threads) {
                 const auto index = indices.back();
                 indices.pop_back();
-                next[index] = current[index].update(current[index]);
+                current[index].update(next[index]);
             }
             for (const auto i : indices)
                 next[i] = current[i];
-
-            indices.clear();
         }
         else {
             for (auto i = nth; i < array_size; i += n_threads)
-                next[i] = current[i].update(current[i]);
+                current[i].update(next[i]);
         }
+        indices.clear();
     }
 
     T * current = nullptr;
@@ -129,6 +129,8 @@ public:
     }
 
     void launch(T * current, T * next, const int size) {
+        // TODO check whether memmove is faster than current mechanism
+        //std::memmove(next, current, size); 
         launch(current, next, size, size);
     }
 
