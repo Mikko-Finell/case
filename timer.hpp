@@ -12,7 +12,7 @@ using namespace std::literals::chrono_literals;
 class Timer {
     using clock = std::chrono::high_resolution_clock;
     clock::time_point start_time;
-    double duration = 0.0;
+    double _duration = 0.0;
 
 public:
     inline void start() {
@@ -20,22 +20,23 @@ public:
     }
 
     inline double reset() {
-        const auto precision = 1000;
-        const auto us = duration_cast<microseconds>(clock::now() - start_time);
-        start_time = clock::now();
-        duration = std::round(us.count() / 1000.0 * precision) / precision;
-        return duration;
+        _duration = dt();
+        return _duration;
     }
 
     inline double stop() {
-        duration = reset();
-        return duration;
+        _duration += dt();
+        return _duration;
     }
 
     inline double dt() const {
         const auto precision = 1000;
         const auto us = duration_cast<microseconds>(clock::now() - start_time);
         return std::round(us.count() / 1000.0 * precision) / precision;
+    }
+
+    inline double duration() const {
+        return _duration;
     }
 };
 
