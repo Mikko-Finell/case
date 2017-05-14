@@ -71,7 +71,7 @@ public:
 
             timer.start();
             execute();
-            timer.stop();
+            timer.reset();
         }
     }
 };
