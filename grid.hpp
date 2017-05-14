@@ -1,6 +1,7 @@
 #ifndef CASE_GRID
 #define CASE_GRID
 
+#include <stdexcept>
 #include <cassert>
 #include "index.hpp"
 
