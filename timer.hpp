@@ -15,18 +15,27 @@ class Timer {
     double duration = 0.0;
 
 public:
-    void start() {
+    inline void start() {
         start_time = clock::now();
     }
-    double stop() {
+
+    inline double reset() {
         const auto precision = 1000;
         const auto us = duration_cast<microseconds>(clock::now() - start_time);
+        start_time = clock::now();
         duration = std::round(us.count() / 1000.0 * precision) / precision;
-        return dt();
+        return duration;
+    }
+
+    inline double stop() {
+        duration = reset();
+        return duration;
     }
 
     inline double dt() const {
-        return duration;
+        const auto precision = 1000;
+        const auto us = duration_cast<microseconds>(clock::now() - start_time);
+        return std::round(us.count() / 1000.0 * precision) / precision;
     }
 };
 
