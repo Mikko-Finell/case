@@ -183,14 +183,14 @@ public:
 template<class T>
 class Direct {
     const int columns = 0, rows = 0;
-    T * self = nullptr;
+    const T * self = nullptr;
 
 public:
-    Direct(T * t, const int c, const int r)
+    Direct(const T * t, const int c, const int r)
         : columns(c), rows(r), self(t)
     {}
 
-    T & operator()(const int x, const int y) const {
+    const T & operator()(const int x, const int y) const {
         const int i = self->index;
         const int gx = (i % columns) + x;
         const int gy = (i / columns) + y;
