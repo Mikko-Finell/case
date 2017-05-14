@@ -59,8 +59,7 @@ public:
             next.active = false;
             next.age++;
 
-            //if (rules[next.age % 7][pattern])
-            if (r150[pattern])
+            if (rules[next.age % 7][pattern])
                 next.live = true;
             else
                 next.live = false;
@@ -109,8 +108,8 @@ struct Wolframs_Rules {
         CASE::Random rng;
         for (auto x = 0; x < COLUMNS; x++) {
             auto & agent = agents[CASE::index(x, 0, COLUMNS)];
-            if (rng(1, 100) < 50)
-                agent.live = true;
+            //if (rng(1, 100) < 50)
+                //agent.live = true;
         }
         for (auto x = 0; x < COLUMNS; x++) {
             auto & agent = agents[CASE::index(x, 1, COLUMNS)];
