@@ -10,15 +10,14 @@
 
 class Wolfram {
     int x, y;
-    int age = 0;
 
     bool parent_is_active() const {
         auto neighbors = CASE::neighbors::Direct<Wolfram>{this, COLUMNS, ROWS};
         return neighbors(0, -1).active;
-
     }
 
 public:
+    int age = 0;
     bool live = false;
     bool active = false;
     int index = 0;
@@ -38,29 +37,13 @@ public:
         if (neighbors(1, -1).live)
             pattern = pattern | 0b001;
 
-        /*
-        static const int r30[8] = {
-            0, 1, 1, 1, 1, 0, 0, 0
-        };
-        static const int r90[8] = {
-            0, 1, 0, 1, 1, 0, 1, 0
-        };
-        static const int r105[8] = {
-            1, 0, 0, 1, 0, 1, 1, 0
-        };
-        static const int r106[8] = {
-            0, 1, 0, 1, 0, 1, 1, 0
-        };
-        static const int r110[8] = {
-            0, 1, 1, 1, 0, 1, 1, 0
-        };
-        static const int r126[8] = {
-            0, 1, 1, 1, 1, 1, 1, 0
-        };
-        static const int r184[8] = {
-            0, 0, 0, 1, 1, 1, 0, 1
-        };
-        */
+        static const int r30 [8] = { 0, 1, 1, 1, 1, 0, 0, 0 };
+        static const int r90 [8] = { 0, 1, 0, 1, 1, 0, 1, 0 };
+        static const int r105[8] = { 1, 0, 0, 1, 0, 1, 1, 0 };
+        static const int r106[8] = { 0, 1, 0, 1, 0, 1, 1, 0 };
+        static const int r110[8] = { 0, 1, 1, 1, 0, 1, 1, 0 };
+        static const int r126[8] = { 0, 1, 1, 1, 1, 1, 1, 0 };
+        static const int r150[8] = { 0, 1, 1, 0, 1, 0, 0, 1 };
 
         static const int rules[7][8] = {
             { 0, 1, 1, 1, 1, 1, 1, 0 }, // 126
@@ -69,14 +52,15 @@ public:
             { 1, 0, 0, 1, 0, 1, 1, 0 }, // 105
             { 0, 1, 0, 1, 0, 1, 1, 0 }, // 106
             { 0, 1, 1, 1, 0, 1, 1, 0 }, // 110
-            { 0, 0, 0, 1, 1, 1, 0, 1 }  // 184
+            { 0, 1, 1, 0, 1, 0, 0, 1 }  // 150
         };
 
         if (active) {
             next.active = false;
             next.age++;
 
-            if (rules[next.age % 5][pattern])
+            //if (rules[next.age % 7][pattern])
+            if (r150[pattern])
                 next.live = true;
             else
                 next.live = false;
@@ -125,18 +109,16 @@ struct Wolframs_Rules {
         CASE::Random rng;
         for (auto x = 0; x < COLUMNS; x++) {
             auto & agent = agents[CASE::index(x, 0, COLUMNS)];
-            //if (rng(1, 100) < 50)
-                //agent.live = true;
-            agent.active = true;
+            if (rng(1, 100) < 50)
+                agent.live = true;
         }
-
-        auto & agent = agents[CASE::index(COLUMNS - 1, 0, COLUMNS)];
-        agent.live = true;
-
         for (auto x = 0; x < COLUMNS; x++) {
             auto & agent = agents[CASE::index(x, 1, COLUMNS)];
             agent.active = true;
         }
+
+        auto & agent = agents[CASE::index(COLUMNS / 2, 0, COLUMNS)];
+        agent.live = true;
     };
 };
 
