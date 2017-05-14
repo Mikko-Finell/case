@@ -53,8 +53,7 @@ void Totalistic() {
     timer.start();
 
     sim.init(world.next());
-    graphics.draw(world.next(), size);
-    graphics.display();
+    graphics.clear(sim.bgcolor);
 
     while (running) {
         sf::Event event;
@@ -71,6 +70,7 @@ void Totalistic() {
                         if (_::isKeyPressed(_::RControl)
                         || _::isKeyPressed(_::LControl))
                         {
+                    case sf::Keyboard::F5:
                             update.wait();
                             sim.init(world.next());
                             sim.init(world.current());
