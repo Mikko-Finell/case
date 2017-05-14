@@ -21,6 +21,7 @@ public:
 
     inline double reset() {
         _duration = dt();
+        start_time = clock::now();
         return _duration;
     }
 
