@@ -73,7 +73,6 @@ void Totalistic() {
                     case sf::Keyboard::F5:
                             update.wait();
                             sim.init(world.next());
-                            sim.init(world.current());
                             if (pause)
                                 single_step = true;
                         }
