@@ -79,13 +79,12 @@ protected:
 
     S serial;
     P parallel;
-    CASE::Trigger trigger;
     Strategy strategy = Strategy::Serial;
 
 public:
-    explicit Manager(CASE::Trigger && tr = CASE::Trigger{1000.0/60.0, 0.2})
-        : trigger(tr)
-    {
+    CASE::Trigger trigger{1000.0/60.0, 0.2};
+
+    Manager() {
         serial.init();
         parallel.init();
         serial.wait();
@@ -98,12 +97,8 @@ public:
         parallel.terminate();
     }
 
-    void set_trigger(CASE::Trigger && tr) {
-        trigger = tr;
-    }
-
     Manager & wait() {
-        if (access != Access::Open)
+        if (access == Access::Open)
             return *this;
 
         if (strategy == Strategy::Serial) {
