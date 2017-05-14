@@ -32,7 +32,6 @@ void Totalistic() {
 
     typename Simulation::Graphics graphics{window};
     typename Simulation::Update update{};
-    update.trigger = Trigger{1000.0 / sim.framerate, 0.2};
 
     auto fast_forward = [size, subset](auto & update, auto & world, const int n)
     {
@@ -55,7 +54,6 @@ void Totalistic() {
 
     sim.init(world.next());
     graphics.draw(world.next(), size);
-    graphics.swapbuffers();
     graphics.display();
 
     while (running) {
@@ -100,19 +98,15 @@ void Totalistic() {
                     case sf::Keyboard::Up:
                         if (pause)
                             pause = false;
-                        else {
+                        else
                             framerate += 5.0;
-                            update.trigger = Trigger{1000.0 / framerate, 0.2};
-                        }
                         continue;
 
                     case sf::Keyboard::Down:
                         if (pause)
                             pause = false;
-                        else {
+                        else
                             framerate -= 5.0;
-                            update.trigger = Trigger{1000.0 / framerate, 0.2};
-                        }
                         continue;
 
                     case sf::Keyboard::Num0:
@@ -147,10 +141,8 @@ void Totalistic() {
             }
         }
 
-        graphics.wait();
         if (pause) {
             if (single_step) {
-                update.wait();
                 world.flip();
                 update.launch(world.current(), world.next(), size, subset);
             }
@@ -158,7 +150,6 @@ void Totalistic() {
         else if (timer.dt() >= 1000.0 / framerate) {
             timer.reset();
 
-            update.wait();
             world.flip();
             update.launch(world.current(), world.next(), size, subset);
         }
@@ -167,8 +158,8 @@ void Totalistic() {
         graphics.display();
     }
 
-    update.wait();
-    graphics.wait();
+    update.terminate();
+    graphics.terminate();
     delete [] agents;
 }
 
