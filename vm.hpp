@@ -54,6 +54,9 @@ void Totalistic() {
     timer.start();
 
     sim.init(world.next());
+    graphics.draw(world.next(), size);
+    graphics.swapbuffers();
+    graphics.display();
 
     while (running) {
         sf::Event event;
@@ -71,9 +74,10 @@ void Totalistic() {
                         || _::isKeyPressed(_::LControl))
                         {
                             update.wait();
-                            graphics.wait();
-                            sim.init(world.current());
                             sim.init(world.next());
+                            sim.init(world.current());
+                            if (pause)
+                                single_step = true;
                         }
                         continue;
 
@@ -158,8 +162,8 @@ void Totalistic() {
             world.flip();
             update.launch(world.current(), world.next(), size, subset);
         }
-        graphics.clear(sf::Color::Black);
         graphics.draw(world.current(), size);
+        graphics.clear(sim.bgcolor);
         graphics.display();
     }
 
