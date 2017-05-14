@@ -25,7 +25,7 @@ protected:
 
 public:
     double job_duration() const override {
-        return timer.dt();
+        return timer.duration();
     }
 };
 
