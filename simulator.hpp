@@ -8,6 +8,7 @@
 #include "static_update.hpp"
 #include "graphics.hpp"
 #include "grid.hpp"
+#include "world.hpp"
 #include "gc.hpp"
 #include "timer.hpp"
 
@@ -28,9 +29,7 @@ void Dynamic() {
 
     constexpr auto array_size = config.max_agents;
     constexpr auto subset     = config.subset;
-
-    auto agents     = new Agent[array_size];
-    auto framerate  = config.framerate;
+    auto framerate            = config.framerate;
 
     sf::RenderWindow window;
     const auto win_w = config.columns * config.cell_size;
@@ -39,28 +38,23 @@ void Dynamic() {
     window.setKeyRepeatEnabled(false);
     window.setVerticalSyncEnabled(true);
 
-    graphics::Dynamic<Agent> graphics{window};
     CASE::Grid<Cell> grid{config.columns, config.rows};
+    World<Cell> world{array_size, grid};
+    graphics::dynamic::DoubleBuffer<Agent> graphics{window};
+    update::Dynamic<Agent> update{world.agents};
 
-    config.init(agents, grid);
-    GarbageCollector<Agent> gc{agents, array_size};
-    gc.compact();
+    config.init(world);
 
-    graphics.draw(agents, gc.count());
     graphics.clear(config.bgcolor);
-    graphics.display();
+    graphics.draw(world.agents, world.count());
 
-    update::Dynamic<Agent> update{agents};
-
-    auto reset = [&config, &agents, &grid, &gc]
-                 (bool & pause, bool & single_step)
+    auto reset = [&config, &world](bool & pause, bool & single_step)
     {
-        config.init(agents, grid);
+        config.init(world);
         if (pause)
             single_step = true;
     };
 
-    int size = 0;
     bool pause = false;
     bool running = true;
     Timer timer;
@@ -70,22 +64,17 @@ void Dynamic() {
         bool single_step = false;
         eventhandling(window, running, pause, single_step, framerate, reset);
         if (pause) {
-            if (single_step) {
-                size = gc.compact();
-                update.launch(size, subset);
-            }
+            if (single_step)
+                update.launch(world, subset);
         }
         else if (timer.dt() >= 1000.0 / framerate) {
             timer.reset();
-            size = gc.compact();
-            update.launch(size, subset);
+            update.launch(world, subset);
         }
-        graphics.draw(agents, size);
         graphics.clear(config.bgcolor);
+        graphics.draw(world.agents, world.count());
         graphics.display();
     }
-
-    delete [] agents;
 }
 
 template<class Config>
