@@ -9,7 +9,8 @@ namespace CASE {
 
 template<class T>
 class GarbageCollector {
-    T * current, * next;
+
+    T * objects = nullptr;
     const int array_size;
     std::vector<int> live;
     std::vector<int> dead;
@@ -20,56 +21,55 @@ class GarbageCollector {
         assert(target < array_size);
         assert(source > 0);
         assert(source < array_size);
-        assert(current + target < current + array_size - 1);
-        assert(next + target < next + array_size - 1);
-        assert(current + source < current + array_size);
-        assert(next + source < next + array_size);
+        assert(objects + target < objects + array_size - 1);
+        assert(objects + source < objects + array_size);
 
-        current[target] = current[source];
-        current[source].deactivate();
-        next[target] = next[source];
-        next[source].deactivate();
+        // copy from source to target
+        objects[target] = objects[source];
+
+        // in cell, replace source with target
+        auto cell = objects[target].cell;
+        assert(cell != nullptr);
+        assert(objects[source].cell != nullptr);
+        const auto code = cell->replace(objects[source], objects[target]);
+        assert(code == Code::OK);
+        // deactivate the original object that has now been moved
+        objects[source].deactivate();
     }
 
 public:
-    GarbageCollector(T * a, T * b, const int size)
-        : current(a), next(b), array_size(size)
+    GarbageCollector(T * t, const int size)
+        : objects(t), array_size(size)
     {
-        assert(a != nullptr);
-        assert(b != nullptr);
-        assert(a != b);
-        if (a < b)
-            assert(a + size <= b);
-        else
-            assert(a >= b + size);
-        assert(size >= 2);
+        assert(objects != nullptr);
     }
 
-    void copy_and_compact() {
+    int compact() {
         live.clear();
         dead.clear();
 
         for (auto i = 0; i < array_size; i++) {
-            if (current[i].active())
+            if (objects[i].active())
                 live.push_back(i);
             else
                 dead.push_back(i);
         }
 
-        const auto live_count = live.size(), dead_count = dead.size();
-        if (live_count == 0 || dead_count == 0)
-            return;
+        if (live.size() == 0 || dead.size() == 0)
+            return 0;
 
         std::reverse(live.begin(), live.end());
-        const auto count = std::min(live_count, dead_count);
-        for (std::size_t i = 0; i < count; i++) {
+        const auto size = std::min(live.size(), dead.size());
+        for (auto i = 0; i < size; i++) {
             if (live[i] < dead[i])
                 break;
+
             move(live[i], dead[i]);
         }
+        return live.size();
     }
 
-    inline std::size_t count() const {
+    inline int count() const {
         return live.size();
     }
 };

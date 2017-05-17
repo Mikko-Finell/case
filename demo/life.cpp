@@ -2,11 +2,14 @@
 #include "../neighbors.hpp"
 #include "../quad.hpp"
 #include "../grid.hpp"
-#include "../vm.hpp"
+#include "../simulator.hpp"
 
-#define COLUMNS 80
-#define ROWS 60
-#define CELL_SIZE 10
+//#define COLUMNS 80
+//#define ROWS 60
+//#define CELL_SIZE 10
+#define COLUMNS 100
+#define ROWS 200
+#define CELL_SIZE 5
 
 class Life {
     int x, y, age = 255;
@@ -74,9 +77,7 @@ public:
 };
 
 struct GameOfLife {
-    using Agent         = Life;
-    using Update        = CASE::Update<Life>;
-    using Graphics      = CASE::Graphics<Life>;
+    using Agent = Life;
 
     const int columns = COLUMNS;
     const int cell_size = CELL_SIZE;
@@ -98,9 +99,9 @@ struct GameOfLife {
                 agent.index = index++;
             }
         }
-    };
+    }
 };
 
 int main() {
-    CASE::vm::Totalistic<GameOfLife>();
+    CASE::simulator::Static<GameOfLife>();
 }

@@ -8,9 +8,10 @@ namespace t_neighbors {
 
 class Agent {
 public:
-    CASE::SimpleCell<Agent> * cell;
+    CASE::SimpleCell<Agent> * cell = nullptr;
     bool operator==(const Agent & other) const { return &other == this; }
     bool operator!=(const Agent & other) const { return !(other == *this); }
+    bool active() { return true; }
 };
 
 using Cell = CASE::SimpleCell<Agent>;
@@ -83,7 +84,7 @@ bool transplant() {
     Cell cells[9];
     init(cells, nh);
     Agent a;
-    nh.insert(a, -1, -1);
+    assert(nh.insert(a, -1, -1) == CASE::Code::OK);
 
     nh.transplant().from(-1, -1).to(1, 1);
     return nh(1, 1) == &a && nh.cell_is_empty(-1, -1);

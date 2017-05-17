@@ -31,40 +31,11 @@ public:
     std::function<void(t2_Agent&)> update;
 };
 
-bool serial_01() {
-    constexpr auto SIZE = 100;
-    CASE::update::Serial<t1_Agent> upd;
-    t1_Agent current[SIZE];
-    t1_Agent next[SIZE];
-    upd.launch(current, next, SIZE);
-    return std::all_of(std::begin(next), std::end(next),
-        [](const t1_Agent & a){ return a.updated; });
-}
-
-bool serial_02() {
-    constexpr auto SIZE = 100;
-    CASE::update::Serial<t1_Agent> upd;
-    t1_Agent current[SIZE];
-    t1_Agent next[SIZE];
-
-    const auto generations = 1000;
-    for (auto i = 0; i < generations; i++) {
-        for (auto & agent : next)
-            agent.updated = false;
-
-        upd.launch(current, next, SIZE);
-        upd.wait();
-    }
-    return std::all_of(std::begin(next), std::end(next),
-        [](const t1_Agent & a){ return a.updated; });
-}
-
 bool parallel_01() {
     constexpr auto SIZE = 100;
-    CASE::update::Parallel<t1_Agent> upd;
+    CASE::update::Static<t1_Agent> upd;
     t1_Agent current[SIZE];
     t1_Agent next[SIZE];
-    upd.init();
     upd.wait();
     upd.launch(current, next, SIZE);
     upd.wait();
@@ -76,10 +47,9 @@ bool parallel_01() {
 bool parallel_02() {
     constexpr auto SIZE = 100;
     constexpr auto SUBSET = 50;
-    CASE::update::Parallel<t1_Agent> upd;
+    CASE::update::Static<t1_Agent> upd;
     t1_Agent current[SIZE];
     t1_Agent next[SIZE];
-    upd.init();
     upd.wait();
 
     std::vector<bool> tests;
@@ -108,7 +78,7 @@ bool parallel_02() {
 
 bool manager_01() {
     constexpr auto SIZE = 100;
-    CASE::Update<t1_Agent> updm;
+    CASE::update::Static<t1_Agent> updm;
     t1_Agent current[SIZE];
     t1_Agent next[SIZE];
 
@@ -121,8 +91,7 @@ bool manager_01() {
 
 bool manager_hi() {
     constexpr auto SIZE = 100;
-    CASE::Update<t1_Agent> updm;
-    updm.trigger = CASE::Trigger{100, 0.1};
+    CASE::update::Static<t1_Agent> updm;
     t1_Agent current[SIZE];
     t1_Agent next[SIZE];
     for (auto agent : current)
@@ -148,8 +117,7 @@ bool manager_lo_hi() {
         a.update = update;
     t2_Agent next[SIZE];
 
-    CASE::Update<t2_Agent> updm;
-    updm.trigger = CASE::Trigger{50, 0.1};
+    CASE::update::Static<t2_Agent> updm;
     CASE::ArrayBuffer<t2_Agent> arb{current, next};
 
     for (int i = 0; i < generations; i++) {
@@ -178,8 +146,7 @@ bool manager_hi_lo() {
         a.sleep = 10;
     }
 
-    CASE::Update<t2_Agent> updm; 
-    updm.trigger = CASE::Trigger{50, 0.1};
+    CASE::update::Static<t2_Agent> updm; 
     CASE::ArrayBuffer<t2_Agent> arb{current, next};
 
     for (int i = 0; i < generations; i++) {
@@ -212,8 +179,7 @@ bool manager_rand_sleep() {
     for (auto & a : current)
         a.update = update;
 
-    CASE::Update<t2_Agent> updm;
-    updm.trigger = CASE::Trigger{10, 0.1};
+    CASE::update::Static<t2_Agent> updm;
     CASE::ArrayBuffer<t2_Agent> arb{current, next};
 
     const auto generations = 100;
@@ -243,8 +209,7 @@ bool manager_rand_trig() {
     for (auto & a : current)
         a.update = update;
 
-    CASE::Update<t2_Agent> updm;
-    updm.trigger = CASE::Trigger{10, 0.1};
+    CASE::update::Static<t2_Agent> updm;
     CASE::ArrayBuffer<t2_Agent> arb{current, next};
 
     const auto generations = 100;
@@ -254,7 +219,6 @@ bool manager_rand_trig() {
         if (dist(rng) < 15) {
             const auto midline = double(dist(rng));
             const auto tolerance = double(dist(rng)) / 10;
-            updm.trigger = CASE::Trigger{midline, tolerance};
         }
     }
 
@@ -284,8 +248,7 @@ bool manager_rand_both() {
     for (auto & a : current)
         a.update = update;
 
-    CASE::Update<t2_Agent> updm;
-    updm. trigger = CASE::Trigger{10, 0.1};
+    CASE::update::Static<t2_Agent> updm;
     CASE::ArrayBuffer<t2_Agent> arb{current, next};
 
     const auto generations = 100;
@@ -295,7 +258,6 @@ bool manager_rand_both() {
         if (dist(rng) < 15) {
             const auto midline = double(dist(rng));
             const auto tolerance = double(dist(rng)) / 10;
-            updm.trigger = CASE::Trigger{midline, tolerance};
         }
     }
 
@@ -313,24 +275,8 @@ public:
     }
 };
 
-bool subset_serial() {
-    constexpr auto SIZE = 10;
-    CASE::update::Serial<t3_agent> upd;
-    t3_agent current[SIZE], next[SIZE];
-    upd.launch(current, next, SIZE, SIZE / 2);
-    upd.wait();
-
-    int count = 0;
-    for (const auto & agent : next) {
-        if (agent.updated)
-            count++;
-    }
-    return count == SIZE / 2;
-}
-
 bool subset_parallel(int size, int subset, int gens) {
-    CASE::update::Parallel<t3_agent> upd;
-    upd.init();
+    CASE::update::Static<t3_agent> upd;
     upd.wait();
 
     auto ptr1 = new t3_agent[size];
@@ -367,7 +313,7 @@ bool subset_manager() {
     for (auto & a : current) assert(a.updated == false);
     for (auto & a : next) assert(a.updated == false);
 
-    CASE::Update<t3_agent> updm;
+    CASE::update::Static<t3_agent> updm;
     CASE::ArrayBuffer<t3_agent> arb{current, next};
 
     updm.launch(current, next, SIZE, SIZE / 2).wait();
@@ -393,8 +339,7 @@ bool copied() {
         assert(a.updated == false);
     }
 
-    CASE::Update<t1_Agent> updm;
-    updm.trigger = CASE::Trigger{-1, 0};
+    CASE::update::Static<t1_Agent> updm;
 
     updm.launch(current, next, SIZE, SUBSET).wait();
     auto count = 0;
@@ -433,7 +378,6 @@ void run() {
     auto module = new cpptest::Module{"update"};
     auto & test = *module;
 
-    test.fn("subset serial", subset_serial);
     test.fn("subset manager", subset_manager);
     test.fn("subset old are copied over", copied);
 
@@ -449,8 +393,6 @@ void run() {
         test.fn(name, [x, y]{ return subset_parallel(x, y, 5); });
     }
 
-    test.fn("serial update 01", serial_01);
-    test.fn("serial update 02", serial_02);
     test.fn("parallel update 01", parallel_01);
     test.fn("parallel update 02", parallel_02);
     test.fn("manager update 01", manager_01);

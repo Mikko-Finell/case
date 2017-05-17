@@ -68,9 +68,11 @@ struct Pos {
 };
 
 class Agent {
+    bool alive = true;
 public:
     Pos pos;
-    CASE::SimpleCell<Agent> * cell;
+    CASE::SimpleCell<Agent> * cell = nullptr;
+    bool active() { return alive; }
 };
 
 using Cell = CASE::SimpleCell<Agent>;
@@ -181,6 +183,7 @@ void run() {
             }));
         }
     }
+
     {
         cpptest::Module test{"grid"};
         for (auto & result : results)

@@ -60,17 +60,17 @@ public:
 };
 
 template<class T>
-class Parallel : private map::Parallel<Job<T>> {
+class Static : private map::Parallel<Job<T>> {
     enum class Access { Open, Closed };
     Access access = Access::Closed;
 
 public:
-    Parallel() {
+    Static() {
         map::Parallel<Job<T>>::init();
         wait();
     }
 
-    ~Parallel() {
+    ~Static() {
         terminate();
     }
 
@@ -83,7 +83,7 @@ public:
         access = Access::Open;
     }
 
-    Parallel & launch(T * current, T * next, const int size, const int subset) {
+    Static & launch(T * current, T * next, const int size, const int subset) {
         wait();
         assert(access == Access::Open);
         
@@ -110,7 +110,7 @@ public:
         return *this;
     }
 
-    Parallel & launch(T * current, T * next, const int size) {
+    Static & launch(T * current, T * next, const int size) {
         return launch(current, next, size, size);
     }
 
@@ -128,9 +128,6 @@ public:
 };
 
 } // update
-
-template<class T>
-using Update = update::Parallel<T>;
 
 } // CASE
 

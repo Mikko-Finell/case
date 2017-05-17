@@ -60,6 +60,15 @@ public:
         assert(_index(x, y) < columns * rows);
         return cells[_index(x, y)];
     }
+
+    T & operator()(const CASE::Random & rng) {
+        return cells[rng(0, columns * rows - 1)];
+    }
+
+    void clear() {
+        for (auto i = 0; i < columns * rows; i++)
+            cells[i].clear();
+    }
 };
 
 } // CASE

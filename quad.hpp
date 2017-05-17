@@ -1,7 +1,6 @@
 #ifndef CASE_QUAD
 #define CASE_QUAD
 
-#include <array>
 #include <SFML/Graphics.hpp>
 
 namespace CASE {
@@ -17,7 +16,7 @@ inline void setcolor(sf::Vertex & vs, const int r, const int g, const int b) {
     vs.color.g = g;
     vs.color.b = b;
 }
-}
+} // impl
 
 inline
 void quad(const int x, const int y, const int w, const int h,
