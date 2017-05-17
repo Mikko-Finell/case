@@ -2,7 +2,7 @@
 #include "../neighbors.hpp"
 #include "../quad.hpp"
 #include "../grid.hpp"
-#include "../vm.hpp"
+#include "../simulator.hpp"
 
 #define COLUMNS 100
 #define ROWS 200
@@ -85,8 +85,8 @@ public:
 
 struct Wolframs_Rules {
     using Agent         = Wolfram;
-    using Update        = CASE::Update<Wolfram>;
-    using Graphics      = CASE::Graphics<Wolfram>;
+    using Update        = CASE::update::Static<Wolfram>;
+    using Graphics      = CASE::graphics::Parallel<Wolfram, 4>;
 
     const int columns = COLUMNS;
     const int cell_size = CELL_SIZE;
@@ -116,5 +116,5 @@ struct Wolframs_Rules {
 };
 
 int main() {
-    CASE::vm::Totalistic<Wolframs_Rules>();
+    CASE::simulator::Static<Wolframs_Rules>();
 }
