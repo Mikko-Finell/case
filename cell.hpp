@@ -69,6 +69,7 @@ class ZCell {
 
 public:
     CASE::Neighbors<ZCell<T, SIZE>> neighbors;
+    using Agent = T;
 
     ZCell() {
         for (auto i = 0; i < SIZE; i++)
@@ -106,6 +107,16 @@ public:
 
         refresh();
         return _extract(layer);
+    }
+
+    Code extract(T & t) {
+        for (auto i = 0; i < SIZE; i++) {
+            if (array[i] == &t) {
+                extract(i);
+                return Code::OK;
+            }
+        }
+        return Code::NotFound;
     }
 
     T * extract() {
