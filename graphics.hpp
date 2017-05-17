@@ -10,6 +10,7 @@
 namespace CASE {
 namespace graphics {
 
+namespace static_vs {
 template<class T, int VS_PER_OBJ>
 class Job : public job::Base {
     static_assert(VS_PER_OBJ % 4 == 0, "vs per object must be multiple of 4");
@@ -34,9 +35,10 @@ public:
         array_size = count;
     }
 };
+} // static_vs
 
 template<class T, int VS_PER_OBJ>
-class Parallel : private map::Parallel<Job<T, VS_PER_OBJ>> {
+class Parallel : private map::Parallel<static_vs::Job<T, VS_PER_OBJ>> {
     static_assert(VS_PER_OBJ % 4 == 0, "vs per object must be multiple of 4");
 
     enum class Access { Open, Closed };
@@ -49,7 +51,7 @@ class Parallel : private map::Parallel<Job<T, VS_PER_OBJ>> {
 public:
     Parallel(sf::RenderWindow & w) : window(&w)
     {
-        map::Parallel<Job<T, VS_PER_OBJ>>::init();
+        map::Parallel<static_vs::Job<T, VS_PER_OBJ>>::init();
         wait();
     }
 
@@ -61,7 +63,7 @@ public:
         if (access == Access::Open)
             return;
 
-        map::Parallel<Job<T, VS_PER_OBJ>>::wait();
+        map::Parallel<static_vs::Job<T, VS_PER_OBJ>>::wait();
 
         access = Access::Open;
     }
@@ -105,13 +107,99 @@ public:
     }
 };
 
+namespace dynamic {
 template<class T>
-class Dynamic {
+class Job : public job::Base {
+
+    void execute() override {
+        for (auto i = 0; i < array_size; i++)
+            objects[i].draw(*vertices);
+    }
+
+    const T * objects = nullptr;
+    std::vector<sf::Vertex> * vertices = nullptr;
+    volatile int array_size = 0;
+
+public:
+    Job(const int nth, const std::size_t n_threads)
+        : job::Base(0, 1)
+    {}
+
+    void upload(const T * objs, std::vector<sf::Vertex> & vs, const int count) {
+        objects = objs;
+        vertices = &vs;
+        array_size = count;
+    }
+};
+
+template<class T>
+class DoubleBuffer : private map::Parallel<Job<T>> {
+
+    enum class Access { Open, Closed };
+    Access access = Access::Closed;
+
+    sf::RenderWindow * window = nullptr;
+    std::vector<sf::Vertex> vertices[2];
+    ArrayBuffer<std::vector<sf::Vertex>> vs{&vertices[0], &vertices[1]};
+
+    Job<T> job{0, 1};
+
+    void wait() {
+        if (access == Access::Open)
+            return;
+        job.wait();
+        access = Access::Open;
+    }
+
+public:
+    DoubleBuffer(sf::RenderWindow & w) : window(&w)
+    {
+        job.thread = std::thread{[this]{ job.run(); }};
+        wait();
+    }
+
+    ~DoubleBuffer() {
+        wait();
+
+        if (job.thread.joinable()) {
+            job.terminate();
+            job.upload(nullptr, *vs.current(), 0);
+            job.launch();
+            job.thread.join();
+        }
+    }
+
+    void draw(const T * objects, const int size) {
+        wait();
+
+        vs.flip(); // swap buffers
+        vs.next()->clear();
+
+        job.upload(objects, *vs.next(), size);
+        job.launch();
+
+        access = Access::Closed;
+
+        auto & current = *vs.current();
+        window->draw(current.data(), current.size(), sf::Quads);
+        window->display();
+    }
+
+    void clear(const sf::Color color = sf::Color::White) {
+        window->clear(color);
+    }
+
+    void display() { return; }
+
+};
+
+template<class T>
+class SingleBuffer {
     sf::RenderWindow * window = nullptr;
     std::vector<sf::Vertex> vertices;
 
 public:
-    Dynamic(sf::RenderWindow & w) : window(&w)
+    SingleBuffer(sf::RenderWindow & w) : window(&w)
     {
     }
 
@@ -124,9 +212,6 @@ public:
 
         for (auto i = 0; i < size; i++)
             objects[i].draw(vertices);
-
-        //std::cout << "Objects * 4 = " << size * 4 << std::endl;
-        //std::cout << "Vertices    = " << vertices.size() << std::endl;
     }
 
     void clear(const sf::Color color = sf::Color::White) {
@@ -137,45 +222,9 @@ public:
         window->draw(vertices.data(), vertices.size(), sf::Quads);
         window->display();
     }
-
-    /*
-     * double buffered version
-     * TODO test if this affects performance
-     *
-    sf::RenderWindow * window = nullptr;
-    std::vector<sf::Vertex> vertices[2];
-    ArrayBuffer<std::vector<sf::Vertex>> vs{&vertices[0], &vertices[1]};
-
-public:
-    Dynamic(sf::RenderWindow & w) : window(&w)
-    {
-    }
-
-    void draw(const T * objects, const int size) {
-        assert(window != nullptr);
-        assert(objects != nullptr);
-        assert(size >= 0);
-
-        vs.flip(); // swap buffers
-        vs.next()->clear();
-
-        auto & vertices = *vs.current();
-        for (auto i = 0; i < size; i++)
-            objects[i].draw(vertices);
-    }
-
-    void clear(const sf::Color color = sf::Color::White) {
-        window->clear(color);
-    }
-
-    void display() {
-        auto & current = *vs.current();
-        window->draw(current.data(), current.size(), sf::Quads);
-        window->display();
-    }
-    */
 };
 
+} // dynamic
 } // graphics
 
 } // CASE
