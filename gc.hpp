@@ -10,12 +10,11 @@ namespace CASE {
 template<class T>
 class GarbageCollector {
 
-    T * objects = nullptr;
     const int array_size;
     std::vector<int> live;
     std::vector<int> dead;
 
-    inline void move(const int source, const int target) {
+    inline void move(T * objects, const int source, const int target) {
         assert(target < source);
         assert(target >= 0);
         assert(target < array_size);
@@ -38,13 +37,11 @@ class GarbageCollector {
     }
 
 public:
-    GarbageCollector(T * t, const int size)
-        : objects(t), array_size(size)
+    GarbageCollector(const int size) : array_size(size)
     {
-        assert(objects != nullptr);
     }
 
-    int compact() {
+    int compact(T * objects) {
         live.clear();
         dead.clear();
 
@@ -64,7 +61,7 @@ public:
             if (live[i] < dead[i])
                 break;
 
-            move(live[i], dead[i]);
+            move(objects, live[i], dead[i]);
         }
         return live.size();
     }
