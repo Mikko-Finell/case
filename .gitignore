@@ -30,3 +30,4 @@
 
 # Misc data
 callgrind.*
+*.data
