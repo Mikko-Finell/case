@@ -20,17 +20,18 @@ public:
         rng.seed(rd());
     }
 
-    void launch(const int size, const int subset) {
-        indices.resize(size);
+    template<class World>
+    void launch(World & world, const int subset) {
+        indices.resize(world.count());
         std::iota(indices.begin(), indices.end(), 0);
         std::shuffle(indices.begin(), indices.end(), rng);
-        if (subset < size) {
+        if (subset < world.count()) {
             auto iterator = indices.begin();
             std::advance(iterator, subset);
             indices.erase(iterator, indices.end());
         }
         for (const auto i : indices)
-            objects[i].update();
+            objects[i].update(world);
     }
 };
 
