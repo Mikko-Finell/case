@@ -6,6 +6,7 @@ namespace CASE {
 enum Code {
     OK,
     Rejected,
+    NotFound,
     InternalError
 };
 
