@@ -26,10 +26,10 @@ public:
         return job_duration() / jobs.size();
     }
 
-    void init() {
-        const auto n_threads = std::thread::hardware_concurrency() - 1;
-        for (std::size_t n = 0; n < n_threads; n++) {
-            jobs.emplace_back(n, n_threads);
+    virtual void init() {
+        const auto threads = std::thread::hardware_concurrency() - 1;
+        for (std::size_t n = 0; n < threads; n++) {
+            jobs.emplace_back(n, threads);
             auto & job = jobs.back();
             job.thread = std::thread{[&job]{ job.run(); }};
         }
@@ -38,44 +38,6 @@ public:
     void wait() {
         for (auto & job : jobs)
             job.wait();
-    }
-};
-
-template<class T>
-class Manager {
-    enum class Access { Open, Closed };
-    Access access = Access::Closed;
-
-protected:
-    T parallel;
-
-    inline void prelaunch() const {
-        assert(access == Access::Open);
-    }
-
-    inline void postlaunch() {
-        access = Access::Closed;
-    }
-
-public:
-    Manager() {
-        parallel.init();
-        parallel.wait();
-        access = Access::Open;
-    }
-
-    ~Manager() {
-        parallel.terminate();
-    }
-
-    Manager & wait() {
-        if (access == Access::Open)
-            return *this;
-
-        parallel.wait();
-
-        access = Access::Open;
-        return *this;
     }
 };
 
