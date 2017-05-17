@@ -89,6 +89,10 @@ public:
         return cells[index(x, y)]->get();
     }
 
+    T & cell(const int x, const int y) {
+        return *cells[index(x, y)];
+    }
+
     auto extract(const int x, const int y) {
         return cells[index(x, y)]->extract();
     }
@@ -114,12 +118,14 @@ public:
     }
 
     Code transplant(const int ax, const int ay, const int bx, const int by) {
-        if (ax != bx || ay != by) {
-            if (insert(cells[index(ax, ay)]->get(), bx, by) != Code::OK)
-                return Code::Rejected;
-            else
-                extract(ax, ay);
-        }
+        if (ax == bx && ay == by)
+            return Code::Rejected;
+
+        auto & a = *cells[index(ax, ay)];
+        auto & b = *cells[index(bx, by)];
+        b.clear();
+        b = a;
+
         return Code::OK;
     }
 
@@ -131,23 +137,12 @@ public:
         if (ax == bx && ay == by)
             return Code::OK;
 
-        auto b = extract(bx, by);
-        if (transplant(ax, ay, bx, by) == Code::OK) {
-            // a was successfully moved to b
-            if (insert(b, ax, ay) == Code::OK)
-                return Code::OK;
-            else {
-                // b cannot be moved to a. Try recover, else emit InternalError
-                if (transplant(bx, by, ax, ay) != Code::OK)
-                    return Code::InternalError;
-            }
-        }
-        if (insert(b, bx, by) == Code::OK)
-            // b could not be swapped with a but original state was recovered
-            return Code::Rejected;
-        else
-            // b is extracted but cannot be reinserted
-            return Code::InternalError;
+        auto & a = *cells[index(ax, ay)];
+        auto & b = *cells[index(bx, by)];
+        a.swap_with(b);
+
+        return Code::OK;
+
     }
 
     _swapper swap(const int x, const int y) {
