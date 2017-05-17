@@ -2,6 +2,7 @@
 #define CASE_RAND
 
 #include <array>
+#include <algorithm>
 #include <random>
 
 namespace CASE {
