@@ -31,3 +31,4 @@
 # Misc data
 callgrind.*
 *.data
+*.dat

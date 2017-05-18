@@ -11,6 +11,7 @@
 #include "world.hpp"
 #include "gc.hpp"
 #include "timer.hpp"
+#include "log.hpp"
 
 namespace CASE {
 
