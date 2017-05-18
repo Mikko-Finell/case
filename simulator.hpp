@@ -3,6 +3,9 @@
 
 #include <iostream>
 
+#include <SFML/Graphics.hpp>
+#include <algorithm>
+
 #include "array_buffer.hpp"
 #include "dynamic_update.hpp"
 #include "static_update.hpp"
@@ -14,13 +17,11 @@
 #include "log.hpp"
 
 namespace CASE {
-
 namespace simulator {
 
 void eventhandling(sf::RenderWindow & window, bool & running, bool & pause,
                    bool & single_step, double & framerate,
-                   const std::function<void(bool &, bool &)> & reset//,
-                   /*std::function<void()> fast_forward*/);
+                   const std::function<void(bool &, bool &)> & reset);
 
 template<class Config>
 void Dynamic() {
@@ -61,6 +62,9 @@ void Dynamic() {
     Timer timer;
     timer.start();
 
+    Log perf{"update.dat"};
+    Log pop{"pop.dat"};
+
     while (running) {
         bool single_step = false;
         eventhandling(window, running, pause, single_step, framerate, reset);
@@ -70,7 +74,12 @@ void Dynamic() {
         }
         else if (timer.dt() >= 1000.0 / framerate) {
             timer.reset();
+
+            Timer updt;
+            updt.start();
             update.launch(world, subset);
+            //perf.out(updt.dt());
+            //pop.out(world.count());
         }
         graphics.clear(config.bgcolor);
         graphics.draw(world.agents, world.count());
@@ -99,17 +108,6 @@ void Static() {
     update::Static<Agent> update;
     graphics::Parallel<Agent, 4> graphics{window};
 
-    /*auto fast_forward=[size, subset](auto & update, auto & world, const int n)
-    {
-        auto generations = std::pow(10, n);
-        if (n > 1)
-            generations -= std::pow(10, n - 1);
-
-        for (auto i = 0; i < generations; i++) {
-            update.launch(world.current(), world.next(), size, subset);
-            world.flip();
-        }
-    };*/
     auto reset = [&update, &config, &world](bool & pause, bool & single_step) {
         update.wait();
         config.init(world.next());
@@ -128,8 +126,7 @@ void Static() {
 
     while (running) {
         bool single_step = false;
-        eventhandling(window, running, pause, single_step, framerate,
-                      reset);//, fast_forward);
+        eventhandling(window, running, pause, single_step, framerate, reset);
 
         if (pause) {
             if (single_step) {
@@ -155,8 +152,7 @@ void Static() {
 
 void eventhandling(sf::RenderWindow & window, bool & running, bool & pause,
                    bool & single_step, double & framerate,
-                   const std::function<void(bool &, bool &)> & reset//,
-                   /*std::function<void()> fast_forward*/)
+                   const std::function<void(bool &, bool &)> & reset)
 {
     sf::Event event;
     while (window.pollEvent(event)) {
@@ -205,29 +201,7 @@ void eventhandling(sf::RenderWindow & window, bool & running, bool & pause,
                     else
                         framerate -= 5.0;
                     continue;
-                /*
-                case sf::Keyboard::Num0:
-                    fast_forward(10);
-                case sf::Keyboard::Num9:
-                    fast_forward(9);
-                case sf::Keyboard::Num8:
-                    fast_forward(8);
-                case sf::Keyboard::Num7:
-                    fast_forward(7);
-                case sf::Keyboard::Num6:
-                    fast_forward(6);
-                case sf::Keyboard::Num5:
-                    fast_forward(5);
-                case sf::Keyboard::Num4:
-                    fast_forward(4);
-                case sf::Keyboard::Num3:
-                    fast_forward(3);
-                case sf::Keyboard::Num2:
-                    fast_forward(2);
-                case sf::Keyboard::Num1:
-                    fast_forward(1);
-                    continue;
-                */
+
                 default:
                     continue;
             }

@@ -2,9 +2,7 @@
 #define CASE_MAP
 
 #include <thread>
-#include <mutex>
 #include <list>
-#include "timer.hpp"
 
 namespace CASE {
 namespace map {

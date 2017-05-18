@@ -1,8 +1,8 @@
 #ifndef CASE_JOB
 #define CASE_JOB
 
-#include <thread>
 #include <mutex>
+#include <thread>
 #include <condition_variable>
 #include "timer.hpp"
 
@@ -15,7 +15,7 @@ class Base {
 protected:
     const int nth;
     const int n_threads;
-    CASE::Timer timer;
+    Timer timer;
 
     std::condition_variable cv_done;
     std::condition_variable cv_launch;

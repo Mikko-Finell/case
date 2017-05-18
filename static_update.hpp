@@ -1,13 +1,14 @@
 #ifndef CASE_UPDATEM
 #define CASE_UPDATEM
 
-//#include <cstring>
-#include <numeric>
 #include <vector>
+#include <cassert>
+#include <random>
+#include <algorithm>
 
 #include "job.hpp"
 #include "map.hpp"
-#include "trigger.hpp"
+#include "world.hpp"
 
 namespace CASE {
 namespace update {

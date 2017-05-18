@@ -1,11 +1,12 @@
 #ifndef CASE_GRAPHM
 #define CASE_GRAPHM
 
+#include <cassert>
 #include <SFML/Graphics.hpp>
 
 #include "map.hpp"
 #include "job.hpp"
-#include "trigger.hpp"
+#include "array_buffer.hpp"
 
 namespace CASE {
 namespace graphics {

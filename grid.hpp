@@ -1,9 +1,9 @@
 #ifndef CASE_GRID
 #define CASE_GRID
 
-#include <stdexcept>
 #include <cassert>
 #include "index.hpp"
+#include "random.hpp"
 
 namespace CASE {
 
@@ -22,10 +22,8 @@ class Grid {
 public:
     Grid(const int _cols, const int _rows) : columns(_cols), rows(_rows)
     {
-        if (_cols < 1)
-            throw std::invalid_argument{"Columns must be >= 1"};
-        if (_rows < 1)
-            throw std::invalid_argument{"Rows must be >= 1"};
+        assert(_cols >= 1);
+        assert(_rows >= 1);
 
         cells = new T[columns * rows];
         static const int range[3] = {-1, 0, 1};

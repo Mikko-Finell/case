@@ -5,6 +5,8 @@
 #include <vector>
 #include <algorithm>
 
+#include "code.hpp"
+
 namespace CASE {
 
 template<class T>
