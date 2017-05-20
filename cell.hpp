@@ -25,11 +25,11 @@ class ZCell {
 
     void refresh() const {
         for (auto i = 0; i < LAYERS; i++)
-            refresh_layer(i);
+            refresh(i);
     }
 
     Code _insert(T * t, const int layer) {
-        refresh_layer(layer);
+        refresh(layer);
 
         if (t == nullptr)
             return Code::Rejected;
