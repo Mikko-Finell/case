@@ -40,8 +40,9 @@ void Dynamic() {
     window.setKeyRepeatEnabled(false);
     window.setVerticalSyncEnabled(true);
 
-    CASE::Grid<Cell> grid{config.columns, config.rows};
-    World<Cell> world{array_size, grid};
+    World<Agent, Grid<Cell>> world{array_size};
+    world.grid.init(config.columns, config.rows);
+
     graphics::dynamic::DoubleBuffer<Agent> graphics{window};
     update::Dynamic<Agent> update{world.agents};
 
@@ -62,24 +63,22 @@ void Dynamic() {
     Timer timer;
     timer.start();
 
-    Log perf{"update.dat"};
-    Log pop{"pop.dat"};
-
     while (running) {
         bool single_step = false;
+        bool update_frame = false;
         eventhandling(window, running, pause, single_step, framerate, reset);
         if (pause) {
             if (single_step)
-                update.launch(world, subset);
+                update_frame = true;
         }
         else if (timer.dt() >= 1000.0 / framerate) {
             timer.reset();
-
-            Timer updt;
-            updt.start();
+            update_frame = true;
+        }
+        if (update_frame) {
             update.launch(world, subset);
-            //perf.out(updt.dt());
-            //pop.out(world.count());
+            world.sort();
+            config.postprocessing(world);
         }
         graphics.clear(config.bgcolor);
         graphics.draw(world.agents, world.count());
