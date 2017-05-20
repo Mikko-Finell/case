@@ -1,13 +1,14 @@
 #ifndef CASE_NEIGHBORS
 #define CASE_NEIGHBORS
 
+#include <vector>
+#include <functional>
 #include <cassert>
+
 #include "code.hpp"
 #include "index.hpp"
 
 namespace CASE {
-
-namespace neighbors {
 
 template<class T>
 class OnGrid {
@@ -68,7 +69,8 @@ class OnGrid {
         }
     };
 
-    T * cells[9] = {
+    static constexpr int NUMCELLS = 9;
+    T * cells[NUMCELLS] = {
         nullptr, nullptr, nullptr,
         nullptr, nullptr, nullptr,
         nullptr, nullptr, nullptr
@@ -81,12 +83,39 @@ public:
         cells[index(x, y)] = &t;
     }
 
-    auto operator()(const int x, const int y) {
-        return cells[index(x, y)]->get();
+    auto operator()(const int x, const int y, const int z = 0) {
+        return cells[index(x, y)]->getlayer(z);
     }
 
-    auto operator()(const int x, const int y) const {
-        return cells[index(x, y)]->get();
+    auto operator()() {
+        std::vector<typename T::Agent *> inhabitants;
+        inhabitants.reserve(8);
+        for (auto i = 0; i < NUMCELLS; i++) {
+            if (cells[i]->is_occupied() && i != 4) {
+                for (auto k = 0; k < T::depth; k++) {
+                    auto ptr = cells[i]->getlayer(k);
+                    if (ptr != nullptr)
+                        inhabitants.push_back(ptr);
+                }
+            }
+        }
+        return inhabitants;
+    }
+
+    template<class U>
+    auto gather(const std::function<bool(const U &)> & pred) {
+        std::vector<U *> inhabitants;
+        inhabitants.reserve(8);
+        for (auto i = 0; i < NUMCELLS; i++) {
+            if (cells[i]->is_occupied() && i != 4) {
+                for (auto k = 0; k < T::depth; k++) {
+                    auto ptr = cells[i]->getlayer(k);
+                    if (ptr != nullptr && pred(*ptr))
+                        inhabitants.push_back(ptr);
+                }
+            }
+        }
+        return inhabitants;
     }
 
     T & cell(const int x, const int y) {
@@ -94,7 +123,7 @@ public:
     }
 
     auto extract(const int x, const int y) {
-        return cells[index(x, y)]->extract();
+        return cells[index(x, y)]->extract_top();
     }
 
     template<class U>
@@ -154,7 +183,7 @@ public:
     }
 
     void clear() {
-        for (auto i = 0; i < 9; i++)
+        for (auto i = 0; i < NUMCELLS; i++)
             cells[i]->clear();
     }
 
@@ -168,7 +197,7 @@ public:
 
     int popcount() const {
         int count = 0;
-        for (auto i = 0; i < 9; i++)
+        for (auto i = 0; i < NUMCELLS; i++)
             count += cells[i]->popcount();
 
         return count;
@@ -193,10 +222,8 @@ public:
     }
 };
 
-} // neighbors
-
 template<class T>
-using Neighbors = neighbors::OnGrid<T>;
+using Neighbors = OnGrid<T>;
 
 } // CASE
 
