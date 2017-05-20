@@ -25,15 +25,17 @@ class GarbageCollector {
         assert(objects + target < objects + array_size - 1);
         assert(objects + source < objects + array_size);
 
-        // copy from source to target
-        objects[target] = objects[source];
+        auto target_cell = objects[target].cell;
+        auto source_cell = objects[source].cell;
+        //assert(target_cell != nullptr);
+        assert(source_cell != nullptr);
 
-        // in cell, replace source with target
-        auto cell = objects[target].cell;
-        assert(cell != nullptr);
-        assert(objects[source].cell != nullptr);
-        const auto code = cell->replace(objects[source], objects[target]);
-        assert(code == Code::OK);
+        const auto z = objects[source].z;
+        source_cell->extract(z);
+
+        objects[target] = objects[source];
+        source_cell->insert(objects[target]);
+
         // deactivate the original object that has now been moved
         objects[source].deactivate();
     }
