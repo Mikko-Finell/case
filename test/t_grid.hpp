@@ -71,6 +71,7 @@ class Agent {
     bool alive = true;
 public:
     Pos pos;
+    int z = 0;
     CASE::SimpleCell<Agent> * cell = nullptr;
     bool active() { return alive; }
 };

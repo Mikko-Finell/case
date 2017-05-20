@@ -2,7 +2,8 @@
 #include <algorithm>
 #include <random>
 #include <cpptest.hpp>
-#include "../update.hpp"
+#include "../dynamic_update.hpp"
+#include "../static_update.hpp"
 #include "../array_buffer.hpp"
 
 namespace t_update {

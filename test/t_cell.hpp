@@ -9,6 +9,9 @@ class t1Agent {
 
 public:
     CASE::ZCell<t1Agent, STACKSIZE> * cell = nullptr;
+    int z = 0;
+    t1Agent(int depth = 0) : z(depth) {}
+
     bool active() { return status; }
     void activate() { status = true; }
     void deactivate() { status = false; }
@@ -17,28 +20,31 @@ public:
 class t2Agent {
 public:
     CASE::ZCell<t2Agent, 2> * cell = nullptr;
+    int z = 0;
+    t2Agent(int depth = 0) : z(depth) {}
+
     bool status = true;
     bool active() const { return status; }
 };
 
 bool insert() {
     CASE::ZCell<t1Agent<2>, 2> cell;
-    t1Agent<2> a, b, c;
-    return cell.insert(a, 0) == CASE::Code::OK
-        && cell.insert(b, 1) == CASE::Code::OK
+    t1Agent<2> a, b{1}, c;
+    return cell.insert(a) == CASE::Code::OK
+        && cell.insert(b) == CASE::Code::OK
         && cell.insert(c) == CASE::Code::Rejected;
 }
 
 bool extract() {
     CASE::ZCell<t1Agent<3>, 3> cell;
-    t1Agent<3> a, b, c;
-    cell.insert(a, 0);
-    cell.insert(b, 1);
-    cell.insert(c, 2);
-    return cell.extract() == &a && cell.popcount() == 2
-        && cell.extract() == &b && cell.popcount() == 1
-        && cell.extract() == &c && cell.is_empty()
-        && cell.extract() == nullptr;
+    t1Agent<3> a{0}, b{1}, c{2};
+    cell.insert(a);
+    cell.insert(b);
+    cell.insert(c);
+    return cell.extract(a.z) == &a && cell.popcount() == 2
+        && cell.extract(b.z) == &b && cell.popcount() == 1
+        && cell.extract(c.z) == &c && cell.is_empty()
+        && cell.extract_top() == nullptr;
 }
 
 bool get() {
@@ -71,13 +77,13 @@ bool insertion0() {
 
 bool relocation0() {
     CASE::ZCell<t1Agent<2>, 2> cell0, cell1;
-    t1Agent<2> a, b;
+    t1Agent<2> a, b{1};
 
-    cell0.insert(a, 0);
-    cell1.insert(b, 0);
-    cell1.insert(cell0.extract(), 1);
+    cell0.insert(a);
+    cell1.insert(b);
 
-    bool t0 = b.cell == &cell1;
+    cell1.insert(cell0.extract_top());
+
     return b.cell == &cell1 && a.cell == &cell1;
 }
 
@@ -86,14 +92,14 @@ bool extraction0() {
     t1Agent<1> a;
     cell.insert(a);
     assert(a.cell == &cell);
-    cell.extract();
+    cell.extract(a.z);
     return a.cell == nullptr;
 }
 
 bool insertion1() {
     CASE::ZCell<t2Agent, 2> cell;
     t2Agent a;
-    assert(cell.insert(a, 0) == CASE::Code::OK);
+    assert(cell.insert(a) == CASE::Code::OK);
     assert(cell.is_occupied());
     a.status = false;
     return cell.is_empty();
@@ -109,14 +115,10 @@ bool relocation1() {
 bool extraction1() {
     CASE::ZCell<t2Agent, 2> cell;
     t2Agent a;
-    assert(cell.insert(a, 0) == CASE::Code::OK);
-    assert(cell.get(0) == &a);
+    assert(cell.insert(a) == CASE::Code::OK);
+    assert(cell.getlayer(0) == &a);
     a.status = false;
-    return cell.extract( 0 ) == nullptr;
-}
-
-bool add_to_layer() {
-    return false;
+    return cell.extract(0) == nullptr;
 }
 
 void run() {
@@ -135,8 +137,5 @@ void run() {
     test2.fn("insertion", insertion1);
     test2.fn("relocation", relocation1);
     test2.fn("extraction", extraction1);
-    
-    cpptest::Module bug01{"test for bug on 17.5.2017"};
-    bug01.fn("add agent to sublayer", add_to_layer);
 }
 }

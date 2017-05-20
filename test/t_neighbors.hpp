@@ -8,6 +8,7 @@ namespace t_neighbors {
 
 class Agent {
 public:
+    int z = 0;
     CASE::SimpleCell<Agent> * cell = nullptr;
     bool operator==(const Agent & other) const { return &other == this; }
     bool operator!=(const Agent & other) const { return !(other == *this); }
@@ -64,19 +65,6 @@ bool insert() {
     }
 
     return std::all_of(results.begin(), results.end(), [](bool b){return b;});
-}
-
-bool const_check(const CASE::Neighbors<Cell> & nh, const Agent & ag) {
-    return nh(1, 0) == &ag;
-}
-
-bool qconst() {
-    CASE::Neighbors<Cell> nh;
-    Cell cells[9];
-    init(cells, nh);
-    Agent a;
-    nh.insert(a, 1, 0);
-    return const_check(nh, a);
 }
 
 bool transplant() {
@@ -137,14 +125,74 @@ bool clear() {
     return t0 && nh.popcount() == 0;
 }
 
+bool op0() {
+    CASE::Neighbors<Cell> nh;
+    Cell cells[9];
+    init(cells, nh);
+    Agent agents[4];
+
+    nh.insert(agents[0], -1, -1);
+    nh.insert(agents[1],  1, -1);
+    nh.insert(agents[2],  1,  1);
+    nh.insert(agents[3], -1,  1);
+
+    auto list = nh();
+
+    bool all_are_in = std::all_of(std::begin(agents), std::end(agents),
+        [&](auto & agent)
+        {
+            return std::any_of(list.cbegin(), list.cend(),
+                [&](auto ptr){ return ptr == &agent; });
+        });
+
+    return list.size() == 4 && all_are_in;
+}
+
+class zAgent {
+public:
+    int z = 0;
+    CASE::ZCell<zAgent,2> * cell = nullptr;
+    bool active() { return true; }
+};
+
+bool op1() {
+    CASE::OnGrid<CASE::ZCell<zAgent, 2>> nh;
+    CASE::ZCell<zAgent, 2> cells[9];
+    init(cells, nh);
+    zAgent agents[4];
+    agents[1].z = 1;
+    agents[2].z = 1;
+
+    nh.insert(agents[0], -1, -1);
+    nh.insert(agents[1],  1, -1);
+    nh.insert(agents[2],  1,  1);
+    nh.insert(agents[3], -1,  1);
+
+    auto list = nh.gather<zAgent>([](const zAgent & agent){ return agent.z; });
+
+    std::vector<bool> results;
+    for (auto & agent : agents) {
+        if (agent.z) 
+            results.push_back(std::any_of(list.cbegin(), list.cend(),
+                [&](auto ptr){ return ptr == &agent; }));
+        else
+            results.push_back(std::none_of(list.cbegin(), list.cend(),
+                [&](auto ptr){ return ptr == &agent; }));
+    }
+
+    return list.size() == 2 && std::all_of(results.begin(), results.end(),
+        [](bool b){return b;});
+}
+
 void run() {
     cpptest::Module test{"neighbors"};
     test.fn("assign", assign);
     test.fn("insert", insert);
-    test.fn("query const", qconst);
-    test.fn("transplant", transplant);
+    //test.fn("transplant", transplant);
     test.fn("popcount", popcount);
     test.fn("swap", swap);
     test.fn("clear", clear);
+    test.fn("operator()", op0);
+    test.fn("operator(predicate)", op1);
 }
 }

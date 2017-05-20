@@ -16,6 +16,9 @@ class Agent {
     bool alive = false;
 
 public:
+    int z = 0;
+    Agent(int layer = 0) : z(layer) {}
+    
     bool active() const { return alive; }
     void activate() { alive = true; }
     void deactivate() { alive = false; }
@@ -24,12 +27,12 @@ public:
 
 template<class Agent>
 bool _test(Agent * a, const int size) {
-    CASE::GC<Agent> gc{a, size};
+    CASE::GC<Agent> gc{size};
     std::vector<CASE::ZCell<Agent, 1>> cells{std::size_t(size)};
     for (auto i = 0; i < size; i++)
         cells[i].insert(a[i]);
 
-    gc.compact();
+    gc.compact(a);
 
     std::vector<int> live, dead;
     for (auto i = 0; i < size; i++) {
@@ -171,8 +174,8 @@ bool it01() {
         }
     }
     // gc compact
-    GarbageCollector<Agent> gc{agents, cols * rows};
-    gc.compact();
+    GarbageCollector<Agent> gc{cols * rows};
+    gc.compact(agents);
 
     std::vector<bool> results;
     
