@@ -1,52 +1,42 @@
 #ifndef CASE_CELL
 #define CASE_CELL
 
-#include <iostream>
-
 #include "code.hpp"
 #include "neighbors.hpp"
 
 namespace CASE {
 
-template<class T>
-class CellInterface {
-public:
-    virtual Code insert(T * t)         = 0;
-    virtual Code insert(T & t)         { return insert(&t); }
-    virtual T * extract()              = 0;
-    virtual T * get()                  = 0;
-    virtual Code replace(T * a, T * b) = 0;
-    virtual void clear()               = 0;
-    virtual int popcount()       const = 0;
-    virtual bool is_empty()      const { return popcount() == 0; }
-    virtual bool is_occupied()   const { return !is_empty(); }
-    virtual ~CellInterface()           {}
-};
-
-template<class T, int SIZE>
+template<class T, int LAYERS>
 class ZCell {
-    static_assert(SIZE > 0, "ZCell SIZE must be > 0.");
-    mutable T * array[SIZE];
 
-    void refresh() const {
-        for (auto i = 0; i < SIZE; i++) {
-            if (array[i] != nullptr) {
-                auto t_ptr = array[i];
+    static_assert(LAYERS > 0, "ZCell LAYERS must be > 0.");
+    mutable T * array[LAYERS];
 
-                if (t_ptr->active() == false)
-                    array[i] = nullptr;
+    void refresh(const int layer) const {
+        auto t_ptr = array[layer];
+        if (t_ptr != nullptr) {
+            if (t_ptr->active() == false)
+                array[layer] = nullptr;
 
-                else if (t_ptr->cell != this)
-                    array[i] = nullptr;
-            }
+            if (t_ptr->cell != this)
+                array[layer] = nullptr;
         }
     }
 
+    void refresh() const {
+        for (auto i = 0; i < LAYERS; i++)
+            refresh_layer(i);
+    }
+
     Code _insert(T * t, const int layer) {
+        refresh_layer(layer);
+
         if (t == nullptr)
             return Code::Rejected;
+
         if (array[layer] != nullptr)
             return Code::Rejected;
+
         if (t->cell != nullptr && t->cell != this)
             return Code::Rejected;
 
@@ -56,6 +46,8 @@ class ZCell {
     }
 
     T * _extract(const int layer) {
+        refresh(layer);
+
         T * t = array[layer];
         array[layer] = nullptr;
         if (t != nullptr)
@@ -64,116 +56,92 @@ class ZCell {
     }
 
     T * _get(const int layer) {
+        refresh(layer);
         return array[layer];
     }
 
 public:
-    CASE::Neighbors<ZCell<T, SIZE>> neighbors;
     using Agent = T;
+    OnGrid<ZCell<T, LAYERS>> neighbors;
+    static constexpr int depth = LAYERS;
 
     ZCell() {
-        for (auto i = 0; i < SIZE; i++)
+        for (auto i = 0; i < LAYERS; i++)
             array[i] = nullptr;
     }
 
     void operator=(ZCell & other) {
-        for (auto i = 0; i < SIZE; i++)
-            replace(i, other.extract(i)); // ignore rejects
+        for (auto i = 0; i < LAYERS; i++)
+            replace(other.extract(i)); // ignore rejects
     }
 
-    void swap_with(ZCell & other) {
-        for (auto i = 0; i < SIZE; i++) {
-            auto a = extract(i);
-            insert(other.extract(i), i); // ignore rejects
-            other.insert(a, i);
-        }
+    Code insert(T * t) {
+        assert(t->z < LAYERS);
+
+        return _insert(t, t->z);
     }
 
-    Code insert(T * t, const int layer = 0) {
-        assert(layer >= 0);
-        assert(layer < SIZE);
-
-        refresh();
-        return _insert(t, layer);
-    }
-
-    Code insert(T & t, const int layer = 0) {
-        return insert(&t, layer);
+    Code insert(T & t) {
+        return insert(&t);
     }
 
     T * extract(const int layer) {
         assert(layer >= 0);
-        assert(layer < SIZE);
+        assert(layer < LAYERS);
 
         refresh();
         return _extract(layer);
     }
 
     Code extract(T & t) {
-        for (auto i = 0; i < SIZE; i++) {
-            if (array[i] == &t) {
-                extract(i);
-                return Code::OK;
-            }
+        if (array[t.z] == &t) {
+            extract(t.z);
+            return Code::OK;
         }
         return Code::NotFound;
     }
 
-    T * extract() {
-        refresh();
-        for (auto i = 0; i < SIZE; i++) {
+    T * extract_top() {
+        for (auto i = 0; i < LAYERS; i++) {
             if (array[i] != nullptr)
                 return _extract(i);
         }
         return nullptr;
     }
 
+    T * getlayer(const int layer) {
+        return get(layer);
+    }
+
     T * get(const int layer = 0) {
         assert(layer >= 0);
-        assert(layer < SIZE);
+        assert(layer < LAYERS);
 
-        refresh();
         return _get(layer);
     }
     
-    Code replace(const int layer, T * t) {
-        assert(layer >= 0);
-        assert(layer < SIZE);
-
-        _extract(layer);
-        const auto code = _insert(t, layer);
-        refresh();
-        return code;
-    }
-
-    Code replace(const int layer, T & t) {
-        return replace(layer, &t);
-    }
-
-    Code replace(T * a, T * b) {
-        assert(a != b);
-        assert(b != nullptr);
-
-        for (auto i = 0; i < SIZE; i++) {
-            if (array[i] == a)
-                return replace(i, b);
+    void swap_with(ZCell & other) {
+        for (auto i = 0; i < LAYERS; i++) {
+            auto a = extract(i);
+            insert(other.extract(i)); // ignore rejects
+            other.insert(a);
         }
-        return Code::NotFound;
     }
 
-    Code replace(T & a, T & b) {
-        return replace(&a, &b);
+    Code replace(T * t) {
+        _extract(t->z);
+        return _insert(t, t->z);
     }
 
     void clear() {
-        for (auto i = 0; i < SIZE; i++)
+        for (auto i = 0; i < LAYERS; i++)
             _extract(i);
     }
 
     int popcount() const {
         refresh();
         auto count = 0;
-        for (auto i = 0; i < SIZE; i++) {
+        for (auto i = 0; i < LAYERS; i++) {
             if (array[i] != nullptr)
                 count++;
         }
