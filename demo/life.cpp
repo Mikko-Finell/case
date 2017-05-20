@@ -4,18 +4,15 @@
 #include "../grid.hpp"
 #include "../simulator.hpp"
 
-//#define COLUMNS 80
-//#define ROWS 60
-//#define CELL_SIZE 10
-#define COLUMNS 100
-#define ROWS 200
-#define CELL_SIZE 5
+#define COLUMNS 256
+#define ROWS 256
+#define CELL_SIZE 3
 
 class Life {
     int x, y, age = 255;
 
     int popcount() const {
-        auto neighbors = CASE::neighbors::Direct<Life>{this, COLUMNS, ROWS};
+        auto neighbors = CASE::Direct<Life>{this, COLUMNS, ROWS};
         static const int range[3] = {-1, 0, 1};
         auto count = 0;
         for (const auto y : range) {

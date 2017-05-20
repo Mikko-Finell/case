@@ -3,16 +3,17 @@
 #include "../quad.hpp"
 #include "../grid.hpp"
 #include "../simulator.hpp"
+#include "../random.hpp"
 
-#define COLUMNS 100
-#define ROWS 200
-#define CELL_SIZE 5
+#define COLUMNS 256
+#define ROWS 256
+#define CELL_SIZE 3
 
 class Wolfram {
     int x, y;
 
     bool parent_is_active() const {
-        auto neighbors = CASE::neighbors::Direct<Wolfram>{this, COLUMNS, ROWS};
+        auto neighbors = CASE::Direct<Wolfram>{this, COLUMNS, ROWS};
         return neighbors(0, -1).active;
     }
 
@@ -27,7 +28,7 @@ public:
     }
 
     void update(Wolfram & next) const {
-        auto neighbors = CASE::neighbors::Direct<Wolfram>{this, COLUMNS, ROWS};
+        auto neighbors = CASE::Direct<Wolfram>{this, COLUMNS, ROWS};
 
         int pattern = 0b000;
         if (neighbors(-1, -1).live)
@@ -46,12 +47,12 @@ public:
         static const int r150[8] = { 0, 1, 1, 0, 1, 0, 0, 1 };
 
         static const int rules[7][8] = {
-            { 0, 1, 1, 1, 1, 1, 1, 0 }, // 126
-            { 0, 1, 0, 1, 1, 0, 1, 0 }, // 90
             { 0, 1, 1, 1, 1, 0, 0, 0 }, // 30 
+            { 0, 1, 0, 1, 1, 0, 1, 0 }, // 90
             { 1, 0, 0, 1, 0, 1, 1, 0 }, // 105
             { 0, 1, 0, 1, 0, 1, 1, 0 }, // 106
             { 0, 1, 1, 1, 0, 1, 1, 0 }, // 110
+            { 0, 1, 1, 1, 1, 1, 1, 0 }, // 126
             { 0, 1, 1, 0, 1, 0, 0, 1 }  // 150
         };
 
@@ -59,7 +60,8 @@ public:
             next.active = false;
             next.age++;
 
-            if (rules[next.age % 7][pattern])
+            //if (rules[next.age % 7][pattern])
+            if (r90[pattern])
                 next.live = true;
             else
                 next.live = false;
@@ -97,12 +99,15 @@ struct Wolframs_Rules {
     const sf::Color bgcolor = sf::Color{220, 220, 220};
 
     void init(Wolfram * agents) {
+        CASE::Random rng;
         int index = 0;
         for (auto y = 0; y < ROWS; y++) {
             for (auto x = 0; x < COLUMNS; x++) {
                 auto & agent = agents[CASE::index(x, y, COLUMNS)];
                 agent = Wolfram{x, y};
                 agent.index = index++;
+                //if (rng(1, 10) < 3)
+                    //agent.live = true;
             }
         }
         for (auto x = 0; x < COLUMNS; x++) {
