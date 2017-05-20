@@ -23,6 +23,9 @@ public:
         thread = std::thread{[this, filename]
         {
             std::ofstream file{filename, std::ios::out};
+            if (file.is_open() == false)
+                throw std::runtime_error{"unable to open file" + filename};
+
             while (true) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(200));
                 mutex.lock();
