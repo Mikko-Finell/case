@@ -25,13 +25,6 @@ struct UnitVector {
 };
 
 UnitVector random_direction() {
-    /*
-    static const int dir[4][2] = {
-        {1, 0},{-1, 0}, {0, -1},{0, 1}
-    };
-    const auto r = rng(0, 3);
-    return UnitVector{ dir[r][0], dir[r][1] };
-    */
     return { rng(-1, 1), rng(-1, 1) };
 }
 
@@ -246,7 +239,6 @@ struct Config {
         world.clear();
 
         for (auto i = 0 ; i < max_agents * 0.1 ; i++) {
-        //for (auto i = 0 ; i < 1 ; i++) {
             const auto x = rng(0, columns - 1);
             const auto y = rng(0, rows - 1);
 
@@ -268,12 +260,8 @@ struct Config {
     }
 
     void postprocessing(Agent::World & world) {
-        static CASE::Log flog{"foxes.dat"};
-        static CASE::Log rlog{"rabbits.dat"};
-        static CASE::Log glog{"grasses.dat"};
-        flog.out(foxes);
-        rlog.out(rabbits);
-        glog.out(grasses);
+        static CASE::Log log{"data/pop.dat"};
+        log << foxes << '\t' << rabbits << CASE::endl;
     }
 };
 
