@@ -7,11 +7,9 @@
 
 namespace CASE {
 
-template<class T>
+template<class Cell>
 class Grid {
-    T * cells;
-    int columns = 0;
-    int rows = 0;
+    Cell * cells = nullptr;
 
     inline int _index(int x, int y) {
         assert(columns > 0);
@@ -20,12 +18,37 @@ class Grid {
     }
 
 public:
-    Grid(const int _cols, const int _rows) : columns(_cols), rows(_rows)
+    int columns = 0;
+    int rows = 0;
+
+    Grid() 
     {
-        assert(_cols >= 1);
+    }
+
+    Grid(const Grid & other) {
+        init(other.columns, other.rows);
+    }
+
+    Grid(const int cols, const int _rows)
+    {
+        init(cols, _rows);
+    }
+
+    void operator=(const Grid & other) {
+        init(other.columns, other.rows);
+    }
+
+    void init(const int cols, const int _rows) {
+        assert(cols >= 1);
         assert(_rows >= 1);
 
-        cells = new T[columns * rows];
+        columns = cols;
+        rows = _rows;
+
+        if (cells != nullptr)
+            delete [] cells;
+        cells = new Cell[columns * rows];
+
         static const int range[3] = {-1, 0, 1};
 
         // for every cell
@@ -44,22 +67,24 @@ public:
     }
 
     ~Grid() {
-        delete [] cells;
+        if (cells != nullptr)
+            delete [] cells;
+        cells = nullptr;
     }
 
-    T & operator()(const int x, const int y) {
+    Cell & operator()(const int x, const int y) {
         assert(_index(x, y) >= 0);
         assert(_index(x, y) < columns * rows);
         return cells[_index(x, y)];
     }
 
-    const T & operator()(const int x, const int y) const {
+    const Cell & operator()(const int x, const int y) const {
         assert(_index(x, y) >= 0);
         assert(_index(x, y) < columns * rows);
         return cells[_index(x, y)];
     }
 
-    T & operator()(const CASE::Random & rng) {
+    Cell & operator()(const CASE::Random & rng) {
         return cells[rng(0, columns * rows - 1)];
     }
 
