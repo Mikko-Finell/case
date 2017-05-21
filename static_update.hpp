@@ -8,7 +8,6 @@
 
 #include "job.hpp"
 #include "map.hpp"
-#include "world.hpp"
 
 namespace CASE {
 namespace update {
