@@ -1,18 +1,15 @@
 #ifndef CASE_SIM
 #define CASE_SIM
 
-#include <iostream>
+//#include <iostream>
 
 #include <SFML/Graphics.hpp>
-#include <algorithm>
+//#include <algorithm>
 
 #include "array_buffer.hpp"
-#include "dynamic_update.hpp"
 #include "static_update.hpp"
 #include "graphics.hpp"
 #include "grid.hpp"
-#include "world.hpp"
-#include "gc.hpp"
 #include "timer.hpp"
 #include "log.hpp"
 
@@ -40,22 +37,21 @@ void Dynamic() {
     window.setKeyRepeatEnabled(false);
     window.setVerticalSyncEnabled(true);
 
-    World<Agent, Grid<Cell>> world{array_size};
-    world.grid.init(config.columns, config.rows);
+    Neighbors<Cell>::columns = config.columns;
+    Neighbors<Cell>::rows = config.rows;
 
-    graphics::dynamic::DoubleBuffer<Agent> graphics{window};
-    update::Dynamic<Agent> update{world.agents};
+    // note Grid must be constructed before graphics
+    Grid<Cell> grid{config.columns, config.rows};
+    graphics::dynamic::DoubleBuffer<Cell> graphics{window};
 
-    config.init(world);
+    config.init(grid);
 
     graphics.clear(config.bgcolor);
-    graphics.draw(world.agents, world.count());
+    graphics.draw(grid.cells, grid.cell_count());
 
-    auto reset = [&config, &world](bool & pause, bool & single_step)
+    auto reset = [&config, &grid](bool & pause, bool & single_step)
     {
-        config.init(world);
-        if (pause)
-            single_step = true;
+        config.init(grid);
     };
 
     bool pause = false;
@@ -66,7 +62,9 @@ void Dynamic() {
     while (running) {
         bool single_step = false;
         bool update_frame = false;
+
         eventhandling(window, running, pause, single_step, framerate, reset);
+
         if (pause) {
             if (single_step)
                 update_frame = true;
@@ -76,12 +74,11 @@ void Dynamic() {
             update_frame = true;
         }
         if (update_frame) {
-            update.launch(world, subset);
-            world.sort();
-            config.postprocessing(world);
+            grid.update(subset);
+            config.postprocessing(grid);
         }
         graphics.clear(config.bgcolor);
-        graphics.draw(world.agents, world.count());
+        graphics.draw(grid.cells, grid.cell_count());
         graphics.display();
     }
 }

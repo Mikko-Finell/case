@@ -6,143 +6,94 @@
 
 namespace CASE {
 
-template<class T, int LAYERS>
+template <class Agent, int LAYERS>
 class ZCell {
 
     static_assert(LAYERS > 0, "ZCell LAYERS must be > 0.");
-    mutable T * array[LAYERS];
-
-    void refresh(const int layer) const {
-        auto t_ptr = array[layer];
-        if (t_ptr != nullptr) {
-            if (t_ptr->active() == false)
-                array[layer] = nullptr;
-
-            if (t_ptr->cell != this)
-                array[layer] = nullptr;
-        }
-    }
-
-    void refresh() const {
-        for (auto i = 0; i < LAYERS; i++)
-            refresh(i);
-    }
-
-    Code _insert(T * t, const int layer) {
-        refresh(layer);
-
-        if (t == nullptr)
-            return Code::Rejected;
-
-        if (array[layer] != nullptr)
-            return Code::Rejected;
-
-        if (t->cell != nullptr && t->cell != this)
-            return Code::Rejected;
-
-        t->cell = this;
-        array[layer] = t;
-        return Code::OK;
-    }
-
-    T * _extract(const int layer) {
-        refresh(layer);
-
-        T * t = array[layer];
-        array[layer] = nullptr;
-        if (t != nullptr)
-            t->cell = nullptr;
-        return t;
-    }
-
-    T * _get(const int layer) {
-        refresh(layer);
-        return array[layer];
-    }
+    Agent array[LAYERS];
 
 public:
-    using Agent = T;
-    OnGrid<ZCell<T, LAYERS>> neighbors;
     static constexpr int depth = LAYERS;
+    int index = 0;
 
-    ZCell() {
-        for (auto i = 0; i < LAYERS; i++)
-            array[i] = nullptr;
-    }
+    ZCell() {}
 
     void operator=(ZCell & other) {
         for (auto i = 0; i < LAYERS; i++)
-            replace(other.extract(i)); // ignore rejects
+            replace(other.extract(i));
     }
 
-    Code insert(T * t) {
-        assert(t->z < LAYERS);
-
-        return _insert(t, t->z);
+    auto neighbors() {
+        return Neighbors<ZCell>{this};
     }
 
-    Code insert(T & t) {
-        return insert(&t);
-    }
-
-    T * extract(const int layer) {
-        assert(layer >= 0);
-        assert(layer < LAYERS);
-
-        refresh();
-        return _extract(layer);
-    }
-
-    Code extract(T & t) {
-        if (array[t.z] == &t) {
-            extract(t.z);
-            return Code::OK;
+    template <class Grid>
+    void update(Grid & grid) {
+        for (auto & agent : array) {
+            if (agent.active())
+                agent.update(grid);
         }
-        return Code::NotFound;
     }
 
-    T * extract_top() {
-        for (auto i = 0; i < LAYERS; i++) {
-            if (array[i] != nullptr)
-                return _extract(i);
+    void draw(std::vector<sf::Vertex> & vertices) const {
+        for (auto i = depth - 1; i > -1 ; --i) {
+            if (array[i].active())
+                array[i].draw(vertices);
         }
-        return nullptr;
     }
 
-    T * getlayer(const int layer) {
-        return get(layer);
+    Agent & insert(const Agent & agent) {
+        assert(agent.z < LAYERS);
+        assert(agent.z >= 0);
+
+        array[agent.z] = agent;
+        array[agent.z].activate();
+        array[agent.z].cell = this;
+
+        return array[agent.z];
     }
 
-    T * get(const int layer = 0) {
-        assert(layer >= 0);
+    Agent extract(const int layer) {
         assert(layer < LAYERS);
+        assert(layer >= 0);
 
-        return _get(layer);
+        auto & agent = array[layer];
+        agent.deactivate();
+        agent.cell = nullptr;
+        return agent;
     }
-    
+
+    void replace(const Agent & agent) {
+        extract(agent.z);
+        return insert(agent);
+    }
+
+    Agent * getlayer(const int layer) {
+        assert(layer < LAYERS);
+        assert(layer >= 0);
+        if (array[layer].active())
+            return &array[layer];
+        else
+            return nullptr;
+    }
+
     void swap_with(ZCell & other) {
         for (auto i = 0; i < LAYERS; i++) {
-            auto a = extract(i);
-            insert(other.extract(i)); // ignore rejects
-            other.insert(a);
+            auto agent = extract(i);
+            insert(other.extract(i));
+            other.insert(agent);
         }
-    }
-
-    Code replace(T * t) {
-        _extract(t->z);
-        return _insert(t, t->z);
     }
 
     void clear() {
-        for (auto i = 0; i < LAYERS; i++)
-            _extract(i);
+        for (auto & agent : array)
+            agent.deactivate();
     }
 
     int popcount() const {
-        refresh();
         auto count = 0;
-        for (auto i = 0; i < LAYERS; i++) {
-            if (array[i] != nullptr)
+        for (const auto & agent : array) {
+            if (agent.active())
                 count++;
         }
         return count;
@@ -151,9 +102,6 @@ public:
     inline bool is_empty() const { return popcount() == 0; }
     inline bool is_occupied() const { return !is_empty(); }
 };
-
-template<class T>
-using SimpleCell = ZCell<T, 1>;
 
 } // CASE
 

@@ -109,15 +109,15 @@ public:
 };
 
 namespace dynamic {
-template<class T>
+template<class Cell>
 class Job : public job::Base {
 
     void execute() override {
         for (auto i = 0; i < array_size; i++)
-            objects[i].draw(*vertices);
+            cells[i].draw(*vertices);
     }
 
-    const T * objects = nullptr;
+    const Cell * cells = nullptr;
     std::vector<sf::Vertex> * vertices = nullptr;
     volatile int array_size = 0;
 
@@ -126,15 +126,15 @@ public:
         : job::Base(0, 1)
     {}
 
-    void upload(const T * objs, std::vector<sf::Vertex> & vs, const int count) {
-        objects = objs;
+    void upload(const Cell * _c, std::vector<sf::Vertex> & vs, const int size) {
+        cells = _c;
         vertices = &vs;
-        array_size = count;
+        array_size = size;
     }
 };
 
-template<class T>
-class DoubleBuffer : private map::Parallel<Job<T>> {
+template<class Cell>
+class DoubleBuffer : private map::Parallel<Job<Cell>> {
 
     enum class Access { Open, Closed };
     Access access = Access::Closed;
@@ -143,7 +143,7 @@ class DoubleBuffer : private map::Parallel<Job<T>> {
     std::vector<sf::Vertex> vertices[2];
     ArrayBuffer<std::vector<sf::Vertex>> vs{&vertices[0], &vertices[1]};
 
-    Job<T> job{0, 1};
+    Job<Cell> job{0, 1};
 
     void wait() {
         if (access == Access::Open)
@@ -170,13 +170,13 @@ public:
         }
     }
 
-    void draw(const T * objects, const int size) {
+    void draw(const Cell * cells, const int size) {
         wait();
 
         vs.flip(); // swap buffers
         vs.next()->clear();
 
-        job.upload(objects, *vs.next(), size);
+        job.upload(cells, *vs.next(), size);
         job.launch();
 
         access = Access::Closed;
@@ -194,7 +194,7 @@ public:
 
 };
 
-template<class T>
+template<class Cell>
 class SingleBuffer {
     sf::RenderWindow * window = nullptr;
     std::vector<sf::Vertex> vertices;
@@ -204,15 +204,15 @@ public:
     {
     }
 
-    void draw(const T * objects, const int size) {
+    void draw(const Cell * cells, const int size) {
         assert(window != nullptr);
-        assert(objects != nullptr);
+        assert(cells != nullptr);
         assert(size >= 0);
 
         vertices.clear();
 
         for (auto i = 0; i < size; i++)
-            objects[i].draw(vertices);
+            cells[i].draw(vertices);
     }
 
     void clear(const sf::Color color = sf::Color::White) {
