@@ -1,13 +1,15 @@
+#include <iostream>
+
 #include "../quad.hpp"
 #include "../index.hpp"
 #include "../random.hpp"
+#include "../grid.hpp"
 #include "../cell.hpp"
 #include "../simulator.hpp"
-#include "../world.hpp"
 
-#define COLUMNS 200
-#define ROWS 200
-#define CELL_SIZE 5
+#define COLUMNS 300
+#define ROWS 300
+#define CELL_SIZE 6
 
 int rng(const int low, const int high) {
     static CASE::Random rng;
@@ -36,23 +38,20 @@ enum Type { Fox, Rabbit, Grass, None };
 
 namespace FoxesAndRabbits {
 class Agent {
-private:
     bool alive = false;
 
 public:
+    using Cell = CASE::ZCell<Agent, 2>;
+
     Type type;
     int x = 0, y = 0, z = 0;
     int max_energy = 255;
     int energy = max_energy;
 
-    static Agent * world;
-    CASE::ZCell<Agent, 2> * cell = nullptr;
-
-    using World = CASE::World<Agent, CASE::Grid<CASE::ZCell<Agent, 2>>>;
+    Cell * cell = nullptr;
 
     Agent(Type type = Type::None);
-
-    void update(World & world);
+    void update(CASE::Grid<Cell> & grid);
     void draw(std::vector<sf::Vertex> & vertices) const;
 
     void setpos(const int _x, const int _y) {
@@ -73,27 +72,34 @@ Agent::Agent(const Type _type) {
         auto r = rng(0, 100);
         if (r > 90)
             type = Fox;
-        else 
+        else if (r > 70)
             type = Rabbit;
+        else
+            type = Grass;
     }
     else
         this->type = _type;
 
-    if (type == Fox)
+    if (type == Fox) {
         energy = 200;
-    else if (type == Rabbit)
+        z = 0;
+    }
+    else if (type == Rabbit) {
         energy = 255;
-    else
-        energy = 100;
+        z = 0;
+    }
+    else {
+        energy = 50;
+        z = 1;
+    }
 }
 
-void Agent::update(Agent::World & world) {
+void Agent::update(CASE::Grid<Cell> & grid) {
     if (!alive)
         return;
 
     if (energy <= 0) {
-        const auto code = world.kill(*this);
-        assert(code == CASE::Code::OK);
+        deactivate();
         if (type == Grass)
             --grasses;
         else if (type == Rabbit)
@@ -103,120 +109,114 @@ void Agent::update(Agent::World & world) {
         return;
     }
 
+    const auto vec = random_direction();
+    auto neighbors = cell->neighbors();
+
     if (type == Grass) {
-        auto & grass = *this;
 
-        const auto idle = rng(1, 10) > 5;
-        if (idle)
-            return; 
-
-        auto & neighbors = grass.cell->neighbors;
-        const auto vec = random_direction();
-        auto & cell = neighbors.cell(vec.x, vec.y);
+        auto & cell = neighbors(vec.x, vec.y);
 
         auto grass_neighbor = cell.getlayer(1);
         if (grass_neighbor != nullptr) {
-            grass_neighbor->energy += 10;
-            if (grass_neighbor->energy > grass.max_energy)
-                grass_neighbor->energy = grass.max_energy;
+            grass_neighbor->energy += 3;
+            if (grass_neighbor->energy > max_energy)
+                grass_neighbor->energy = max_energy;
         }
-        else if (grass.energy > 0.5 * grass.max_energy) {
-            Agent grass_model{Grass};
-            grass_model.z = 1;
-            grass_model.setpos(grass.x + vec.x, grass.y + vec.y);
-            auto new_grass = world.try_spawn(grass_model);
-            if (new_grass != nullptr) {
+
+        if (energy > 0.3 * max_energy) {
+            Agent grass{Grass};
+            grass.z = 1;
+            grass.setpos(x + vec.x, y + vec.y);
+            if (grid.spawn(grass) == CASE::OK)
                 ++grasses;
-            }
         }
     }
 
     else if (type == Rabbit) {
-        auto & rabbit = *this;
-        //rabbit.energy -= 5;
 
-        bool breed = rng(1, 20) < 2
-                     && rabbit.energy > 0.5 * rabbit.max_energy;
+        energy -= 1;
+        bool breed = rng(1, 20) < 2 && energy > 0.5 * max_energy;
+
+        auto & cell = neighbors(vec.x, vec.y);
 
         if (breed) {
-            auto & neighbors = rabbit.cell->neighbors;
-            const auto vec = random_direction();
-            auto & cell = neighbors.cell(vec.x, vec.y);
+            Agent kit{Rabbit};
+            kit.z = 0;
+            kit.setpos(x + vec.x, y + vec.y);
+            kit.energy = energy;
 
-            Agent rabbit_model{Rabbit};
-            rabbit_model.z = 0;
-            rabbit_model.setpos(rabbit.x + vec.x, rabbit.y + vec.y);
-            auto kit = world.try_spawn(rabbit_model);
-            if (kit != nullptr) {
-                //rabbit.energy *= 0.5;
+            auto code = grid.spawn(kit);
+            if (code == CASE::OK) {
+                energy -= 20;
                 ++rabbits;
             }
         }
 
-        const auto vec = random_direction();
-        world.try_move(rabbit, rabbit.x + vec.x, rabbit.y + vec.y);
+        auto grass = cell.getlayer(1);
+        if (grass!= nullptr) {
+            energy += grass->energy;
+            grass->energy -= 50;
+        }
+
+        const auto dir = random_direction();
+        grid.move(this, dir.x, dir.y);
     }
 
-    else {
-        auto & fox = *this;
-        fox.energy -= 10;
+    else { // type is Fox
 
-        const auto breed = rng(1, 100) < 5
-                           && fox.energy > 0.7 * fox.max_energy;
+        energy -= 10;
 
-        auto & neighbors = fox.cell->neighbors;
+        const auto breed = rng(1, 100) < 5 && energy > 0.7 * max_energy;
+
+        auto neighbors = cell->neighbors();
         if (breed) {
-
             const auto vec = random_direction();
-            auto & cell = neighbors.cell(vec.x, vec.y);
+            auto & cell = neighbors(vec.x, vec.y);
 
-            Agent cubmodel{Fox};
-            cubmodel.z = 0;
-            cubmodel.setpos(fox.x + vec.x, fox.y + vec.y);
+            Agent cub{Fox};
+            cub.z = 0;
+            cub.setpos(x + vec.x, y + vec.y);
 
-            if (world.try_spawn(cubmodel) != nullptr) {
-                fox.energy -= 50;
+            if (grid.spawn(cub) == CASE::OK) {
+                energy -= 20;
                 ++foxes;
             }
         }
 
-        Agent * prey = nullptr;
+        for (auto cellptr : neighbors.cells()) { 
+            auto ptr = cellptr->getlayer(0);
+            if (ptr == nullptr)
+                continue;
 
-        static const int range[3] = {-1, 0, 1};
-        for (const auto Y : range) {
-            for (const auto X : range) {
-                auto neighbor = neighbors(X, Y);
-                if (neighbor != nullptr && neighbor->type == Rabbit) {
-                    prey = neighbor;
-                    break;
-                }
+            auto & agent = *ptr;
+            if (agent.type == Rabbit) {
+                energy += 50;
+                agent.energy = 0;
             }
         }
 
-        if (prey == nullptr) {
-            const auto vec = random_direction();
-            world.try_move(fox, fox.x + vec.x, fox.y + vec.y);
-        }
-        else {
-            fox.energy += 50;
-            prey->energy = -200;
-        }
+        const auto dir = random_direction();
+        grid.move(this, dir.x, dir.y);
     }
 }
 
 void Agent::draw(std::vector<sf::Vertex> & vs) const {
     const auto i = vs.size();
     vs.resize(vs.size() + 4);
-    if (type == Grass) {
-        vs[i].color.a = 100;
-        vs[i+1].color.a = 100;
-        vs[i+2].color.a = 100;
-        vs[i+3].color.a = 100;
+
+    int r = 0, g = 0, b = 0;
+    if (type == Grass)
+        g = -0.5 * energy + 250;
+
+    else if (type == Rabbit) {
+        g = 155;
+        b = 255;
     }
-    const auto r = type == Fox ? 200 : 0;
-    const auto g = type == Rabbit ? 200 : type == Grass
-        ? 100 + (energy > 255 ? 255 : energy < 0 ? 0 : energy) : 0;
-    const auto b = type == Rabbit ? 200 : 0;
+    else {
+        r = 255;
+        g = 100;
+    }
+
     CASE::quad(x * CELL_SIZE, y * CELL_SIZE,
             CELL_SIZE, CELL_SIZE, r,g,b, &vs[i]);
 }
@@ -224,7 +224,8 @@ void Agent::draw(std::vector<sf::Vertex> & vs) const {
 
 struct Config {
     using Agent = FoxesAndRabbits::Agent;
-    using Cell = CASE::ZCell<FoxesAndRabbits::Agent, 2>;
+    using Cell = Agent::Cell;
+    using Grid = CASE::Grid<Cell>;
 
     static constexpr int columns = COLUMNS;
     static constexpr int rows = ROWS;
@@ -233,35 +234,30 @@ struct Config {
     static constexpr int subset = max_agents * 1;
     const double framerate = 60;
     const char* title = "Foxes and Rabbits";
-    const sf::Color bgcolor = sf::Color{147, 113, 66};
+    const sf::Color bgcolor{0,0,0}; //= sf::Color{147, 113, 66};
 
-    void init(Agent::World & world) {
-        world.clear();
+    void init(Grid & grid) {
+        grid.clear();
 
         for (auto i = 0 ; i < max_agents * 0.1 ; i++) {
             const auto x = rng(0, columns - 1);
             const auto y = rng(0, rows - 1);
 
-            if (world.grid(x, y).is_occupied())
-                continue;
-
             Agent agent{None};
             agent.setpos(x, y);
-            if (world.try_spawn(agent) != nullptr) {
-                switch (agent.type) {
-                    case Grass: grasses++; break;
-                    case Rabbit: rabbits++; break;
-                    default: foxes++; break;
-                }
+            grid(x, y).insert(agent);
 
+            switch (agent.type) {
+                case Grass: grasses++; break;
+                case Rabbit: rabbits++; break;
+                default: foxes++; break;
             }
         }
-        world.sort();
     }
 
-    void postprocessing(Agent::World & world) {
+    void postprocessing(Grid & grid) {
         static CASE::Log log{"data/pop.dat"};
-        log << foxes << '\t' << rabbits << CASE::endl;
+        log << foxes << '\t' << rabbits << '\t' << grasses << CASE::endl;
     }
 };
 
