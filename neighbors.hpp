@@ -9,16 +9,34 @@
 namespace CASE {
 
 template <class Cell>
+class CMemAdjacent {
+    const int columns = 0, rows = 0;
+    const Cell * self = nullptr;
+
+public:
+    CMemAdjacent(const Cell * cell, const int c, const int r)
+        : columns(c), rows(r), self(cell)
+    {}
+
+    const Cell & operator()(const int x, const int y) const {
+        const int i = self->index;
+        const int gx = (i % columns) + x;
+        const int gy = (i / columns) + y;
+        return *(self - i + index(wrap(gx, columns), wrap(gy, rows), columns));
+    }
+};
+
+template <class Cell>
 class MemAdjacent {
     const int columns = 0, rows = 0;
-    Cell * self = nullptr;
+    mutable Cell * self = nullptr;
 
 public:
     MemAdjacent(Cell * cell, const int c, const int r)
         : columns(c), rows(r), self(cell)
     {}
 
-    Cell & operator()(const int x, const int y) {
+    Cell & operator()(const int x, const int y) const {
         const int i = self->index;
         const int gx = (i % columns) + x;
         const int gy = (i / columns) + y;
@@ -47,13 +65,22 @@ public:
 
     auto cells() {
         std::array<Cell *, 9> array{nullptr};
-
         static const int range[3] = {-1, 0, 1};
         for (const auto y : range) {
             for (const auto x : range)
                 array[index(x, y)] = &adjacent(x, y);
         }
         return array;
+    }
+
+    int popcount() const {
+        int count = 0;
+        static const int range[3] = {-1, 0, 1};
+        for (const auto y : range) {
+            for (const auto x : range)
+                count += adjacent(x, y).popcount();
+        }
+        return count;
     }
 
     Cell & operator()(const int x, const int y) {
