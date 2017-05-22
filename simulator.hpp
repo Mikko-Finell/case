@@ -60,6 +60,7 @@ void Dynamic() {
     timer.start();
 
     while (running) {
+
         bool single_step = false;
         bool update_frame = false;
 
@@ -93,6 +94,9 @@ void Static() {
     auto agents          = new Agent[size * 2];
     auto world           = ArrayBuffer<Agent>{agents, agents + size};
     auto framerate       = config.framerate;
+
+    //Neighbors<Agent>::columns = config.columns;
+    //Neighbors<Agent>::rows = config.rows;
 
     sf::RenderWindow window;
     const auto win_w = config.columns * config.cell_size;
