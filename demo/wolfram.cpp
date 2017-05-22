@@ -13,7 +13,7 @@ class Wolfram {
     int x, y;
 
     bool parent_is_active() const {
-        auto neighbors = CASE::Direct<Wolfram>{this, COLUMNS, ROWS};
+        auto neighbors = CASE::CMemAdjacent<Wolfram>{this, COLUMNS, ROWS};
         return neighbors(0, -1).active;
     }
 
@@ -28,7 +28,7 @@ public:
     }
 
     void update(Wolfram & next) const {
-        auto neighbors = CASE::Direct<Wolfram>{this, COLUMNS, ROWS};
+        auto neighbors = CASE::CMemAdjacent<Wolfram>{this, COLUMNS, ROWS};
 
         int pattern = 0b000;
         if (neighbors(-1, -1).live)
@@ -61,7 +61,7 @@ public:
             next.age++;
 
             //if (rules[next.age % 7][pattern])
-            if (r90[pattern])
+            if (r126[pattern])
                 next.live = true;
             else
                 next.live = false;

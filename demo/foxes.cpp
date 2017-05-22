@@ -7,9 +7,9 @@
 #include "../cell.hpp"
 #include "../simulator.hpp"
 
-#define COLUMNS 300
-#define ROWS 300
-#define CELL_SIZE 6
+#define COLUMNS 256
+#define ROWS 256
+#define CELL_SIZE 3
 
 int rng(const int low, const int high) {
     static CASE::Random rng;
@@ -114,7 +114,7 @@ void Agent::update(CASE::Grid<Cell> & grid) {
 
     if (type == Grass) {
 
-        auto & cell = neighbors(vec.x, vec.y);
+        Cell & cell = neighbors(vec.x, vec.y);
 
         auto grass_neighbor = cell.getlayer(1);
         if (grass_neighbor != nullptr) {
@@ -183,7 +183,8 @@ void Agent::update(CASE::Grid<Cell> & grid) {
             }
         }
 
-        for (auto cellptr : neighbors.cells()) { 
+        auto cellpointers = neighbors.cells();
+        for (Cell * cellptr : cellpointers) { 
             auto ptr = cellptr->getlayer(0);
             if (ptr == nullptr)
                 continue;
@@ -257,7 +258,7 @@ struct Config {
 
     void postprocessing(Grid & grid) {
         static CASE::Log log{"data/pop.dat"};
-        log << foxes << '\t' << rabbits << '\t' << grasses << CASE::endl;
+        log.out(foxes+rabbits+grasses);
     }
 };
 

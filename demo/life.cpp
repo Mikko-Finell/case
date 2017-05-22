@@ -12,7 +12,7 @@ class Life {
     int x, y, age = 255;
 
     int popcount() const {
-        auto neighbors = CASE::Direct<Life>{this, COLUMNS, ROWS};
+        auto neighbors = CASE::CMemAdjacent<Life>{this, COLUMNS, ROWS};
         static const int range[3] = {-1, 0, 1};
         auto count = 0;
         for (const auto y : range) {
