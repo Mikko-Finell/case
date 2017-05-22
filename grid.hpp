@@ -7,6 +7,9 @@
 #include "index.hpp"
 #include "random.hpp"
 
+#include "log.hpp"
+#include "timer.hpp"
+
 namespace CASE {
 
 template<class Cell>
@@ -62,14 +65,15 @@ public:
     void update(const int subset) {
         assert(cells != nullptr);
         assert(cell_count() != 0);
-        assert(indices.size() == cell_count());
+
+        indices.clear();
+        for (auto i = 0; i < columns * rows; i++) {
+            if (cells[i].is_occupied())
+                indices.push_back(i);
+        }
 
         std::shuffle(indices.begin(), indices.end(), rng);
-        const auto size = std::min(subset, cell_count());
-
-        //for (int i = 0; i < size; i++)
-        //for (const auto i : indices)
-        for (auto i = 0 ; i < cell_count() ; i++)
+        for (const auto i : indices)
             cells[i].update(*this);
     }
 
@@ -93,8 +97,8 @@ public:
             source_cell.extract(layer);
             auto & inserted_agent = target_cell.insert(agent);
 
-            inserted_agent.x = ax + x;
-            inserted_agent.y = ay + y;
+            inserted_agent.x = wrap(ax + x, columns);
+            inserted_agent.y = wrap(ay + y, rows);
 
             return OK;
         }
@@ -103,11 +107,34 @@ public:
     }
 
     template <class Agent>
-    Code spawn(Agent & agent, const int x, const int y) {
+    Code set_position(Agent * _agent, const int x, const int y) {
+        const auto & agent = *_agent;
+
+        const auto layer = agent.z;
+        auto & target_cell = get(x, y);
+        auto & source_cell = *_agent->cell;
+
+        if (target_cell.getlayer(layer) == nullptr) {
+
+            source_cell.extract(layer);
+            auto & inserted_agent = target_cell.insert(agent);
+
+            inserted_agent.x = wrap(x, columns);
+            inserted_agent.y = wrap(y, rows);
+
+            return OK;
+        }
+        else
+            return Rejected;
+    }
+
+    template <class Agent>
+    Code spawn(const Agent & agent, const int x, const int y) {
         auto & cell = get(x, y);
         if (cell.getlayer(agent.z) == nullptr) {
             auto & _agent = cell.insert(agent);
-            _agent.setpos(x, y);
+            _agent.x = x;
+            _agent.y = y;
             return OK;
         }
         else
@@ -115,7 +142,7 @@ public:
     }
 
     template <class Agent>
-    Code spawn(Agent & agent) {
+    Code spawn(const Agent & agent) {
         return spawn(agent, agent.x, agent.y);
     }
 
