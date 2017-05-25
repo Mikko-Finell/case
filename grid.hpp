@@ -6,7 +6,6 @@
 #include "code.hpp"
 #include "index.hpp"
 #include "random.hpp"
-
 #include "log.hpp"
 #include "timer.hpp"
 
@@ -14,34 +13,37 @@ namespace CASE {
 
 template<class Cell>
 class Grid {
+    using Agent = typename Cell::Agent;
+
     int columns = 0;
     int rows = 0;
     std::mt19937 rng;
-    std::vector<int> indices;
-
-    inline int _index(const int x, const int y) {
-        assert(columns > 0);
-        assert(rows > 0);
-        return index(wrap(x, columns), wrap(y, rows), columns);
-    }
 
     inline Cell & get(const int x, const int y) {
         assert(_index(x, y) >= 0);
         assert(_index(x, y) < columns * rows);
-        return cells[_index(x, y)];
+        return cells[index(wrap(x, columns), wrap(y, rows), columns)];
     }
 
 public:
     Cell * cells = nullptr;
+    Agent * agents = nullptr;
 
-    Grid() 
-    {
+    ~Grid() {
+        if (cells != nullptr)
+            delete [] cells;
+        cells = nullptr;
+        if (agents != nullptr)
+            delete [] agents;
+        agents = nullptr;
+    }
+
+    Grid() {
         std::random_device rd;
         rng.seed(rd());
     }
 
-    Grid(const int cols, const int _rows)
-    {
+    Grid(const int cols, const int _rows) {
         init(cols, _rows);
     }
 
@@ -56,94 +58,56 @@ public:
             delete [] cells;
         cells = new Cell[cell_count()];
 
-        for (auto i = 0; i < cell_count(); i++) {
-            cells[i].index = i;
-            indices.push_back(i);
+        int index = 0;
+        for (auto y = 0; y < rows; y++) {
+            for (auto x = 0; x < columns; x++) {
+                auto & cell = get(x, y);
+                cell.x = x;
+                cell.y = y;
+                cell.index = index++;
+            }
         }
+    
+        // init agents
+        if (agents != nullptr)
+            delete [] agents;
+
+        agents = new Agent[max_agents()];
     }
 
     void update(const int subset) {
-        assert(cells != nullptr);
-        assert(cell_count() != 0);
-
-        indices.clear();
-        for (auto i = 0; i < columns * rows; i++) {
-            if (cells[i].is_occupied())
-                indices.push_back(i);
+        for (auto i = 0; i < max_agents(); i++) {
+            if (agents[i].active())
+                agents[i].update(*this);
         }
-
-        std::shuffle(indices.begin(), indices.end(), rng);
-        for (const auto i : indices)
-            cells[i].update(*this);
     }
 
-    ~Grid() {
-        if (cells != nullptr)
-            delete [] cells;
-        cells = nullptr;
+    void kill(Agent & agent) {
+        agent.deactivate();
+        agent.cell->extract(agent.z);
     }
 
-    template <class Agent>
-    Code move(Agent * _agent, const int x, const int y) {
-        auto agent = *_agent;
+    Agent * spawn(Agent & agent, Cell & cell) {
+        for (int i = 0; i < max_agents(); i++) {
+            if (agents[i].active() == false) {
+                agents[i] = agent;
+                if (agents[i].cell != nullptr)
+                    agents[i].cell->extract(agent.z);
 
-        const auto layer = agent.z;
-        const auto ax = agent.x, ay = agent.y;
-        auto & target_cell = get(ax + x, ay + y);
-        auto & source_cell = *_agent->cell;
-
-        if (target_cell.getlayer(layer) == nullptr) {
-
-            source_cell.extract(layer);
-            auto & inserted_agent = target_cell.insert(agent);
-
-            inserted_agent.x = wrap(ax + x, columns);
-            inserted_agent.y = wrap(ay + y, rows);
-
-            return OK;
+                if (cell.insert(agents[i]) == OK) {
+                    agents[i].activate();
+                    return &agents[i];
+                }
+                else
+                    return nullptr;
+            }
         }
-        else
-            return Rejected;
+        return nullptr;
     }
 
-    template <class Agent>
-    Code set_position(Agent * _agent, const int x, const int y) {
-        const auto & agent = *_agent;
-
-        const auto layer = agent.z;
-        auto & target_cell = get(x, y);
-        auto & source_cell = *_agent->cell;
-
-        if (target_cell.getlayer(layer) == nullptr) {
-
-            source_cell.extract(layer);
-            auto & inserted_agent = target_cell.insert(agent);
-
-            inserted_agent.x = wrap(x, columns);
-            inserted_agent.y = wrap(y, rows);
-
-            return OK;
-        }
-        else
-            return Rejected;
-    }
-
-    template <class Agent>
-    Code spawn(const Agent & agent, const int x, const int y) {
+    Agent * spawn(Agent & agent, const int x, const int y) {
         auto & cell = get(x, y);
-        if (cell.getlayer(agent.z) == nullptr) {
-            auto & _agent = cell.insert(agent);
-            _agent.x = x;
-            _agent.y = y;
-            return OK;
-        }
-        else
-            return Rejected;
-    }
-
-    template <class Agent>
-    Code spawn(const Agent & agent) {
-        return spawn(agent, agent.x, agent.y);
+        return spawn(agent, cell);
     }
 
     Cell & operator()(const int x, const int y) {
@@ -154,17 +118,26 @@ public:
         return get(x, y);
     }
 
-    Cell & operator()(const CASE::Random & rng) {
-        return cells[rng(0, columns * rows - 1)];
-    }
-
     void clear() {
-        for (auto i = 0; i < columns * rows; i++)
+        for (auto i = 0; i < cell_count(); i++)
             cells[i].clear();
     }
 
     inline int cell_count() const {
         return rows * columns;
+    }
+
+    inline int agent_count() const {
+        int count = 0;
+        for (int i = 0; i < max_agents(); i++) {
+            if (agents[i].active())
+                ++count;
+        }
+        return count;
+    }
+
+    inline int max_agents() const {
+        return cell_count() * Cell::depth;
     }
 };
 
