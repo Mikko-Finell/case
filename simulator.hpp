@@ -26,7 +26,6 @@ void Dynamic() {
     using Agent = typename Config::Agent;
     using Cell = typename Config::Cell;
 
-    constexpr auto array_size = config.max_agents;
     constexpr auto subset     = config.subset;
     auto framerate            = config.framerate;
 
@@ -42,17 +41,17 @@ void Dynamic() {
 
     // note Grid must be constructed before graphics
     Grid<Cell> grid{config.columns, config.rows};
-    graphics::dynamic::DoubleBuffer<Cell> graphics{window};
-
-    config.init(grid);
-
-    graphics.clear(config.bgcolor);
-    graphics.draw(grid.cells, grid.cell_count());
+    graphics::dynamic::SingleBuffer<Cell> graphics{window};
 
     auto reset = [&config, &grid](bool & pause, bool & single_step)
     {
         config.init(grid);
     };
+
+    config.init(grid);
+
+    graphics.clear(config.bgcolor);
+    graphics.draw(grid.cells, grid.cell_count());
 
     bool pause = false;
     bool running = true;
@@ -95,9 +94,6 @@ void Static() {
     auto world           = ArrayBuffer<Agent>{agents, agents + size};
     auto framerate       = config.framerate;
 
-    //Neighbors<Agent>::columns = config.columns;
-    //Neighbors<Agent>::rows = config.rows;
-
     sf::RenderWindow window;
     const auto win_w = config.columns * config.cell_size;
     const auto win_h = config.rows * config.cell_size;
@@ -126,17 +122,18 @@ void Static() {
 
     while (running) {
         bool single_step = false;
+        bool update_frame = false;
         eventhandling(window, running, pause, single_step, framerate, reset);
 
         if (pause) {
-            if (single_step) {
-                world.flip();
-                update.launch(world.current(), world.next(), size, subset);
-            }
+            if (single_step)
+                update_frame = true;
         }
         else if (timer.dt() >= 1000.0 / framerate) {
             timer.reset();
-
+            update_frame = true;
+        }
+        if (update_frame) {
             world.flip();
             update.launch(world.current(), world.next(), size, subset);
         }
