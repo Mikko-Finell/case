@@ -7,19 +7,19 @@
 #include "../cell.hpp"
 #include "../simulator.hpp"
 
-#define COLUMNS 256
-#define ROWS 256
+#define COLUMNS 150
+#define ROWS 150
 #define CELL_SIZE 3
 
 int rng(const int low, const int high) {
-    static CASE::Random rng;
-    return rng(low, high);
+    static CASE::Random random;
+    return random(low, high);
 }
 
 template<int low, int high>
 auto range() {
-    static CASE::Random rng;
-    return rng.range<low, high>();
+    static CASE::Random random;
+    return random.range<low, high>();
 }
 
 struct UnitVector {
@@ -44,7 +44,7 @@ public:
     using Cell = CASE::ZCell<Agent, 2>;
 
     Type type;
-    int x = 0, y = 0, z = 0;
+    int z = 0;
     int max_energy = 255;
     int energy = max_energy;
 
@@ -52,25 +52,19 @@ public:
 
     Agent(Type type = Type::None);
     void update(CASE::Grid<Cell> & grid);
-    void draw(std::vector<sf::Vertex> & vertices) const;
+    void draw(const int, const int, std::vector<sf::Vertex> & vertices) const;
 
-    void setpos(const int _x, const int _y) {
-        x = CASE::wrap(_x, COLUMNS);
-        y = CASE::wrap(_y, ROWS);
-    }
-    void relative_move(const int _x, const int _y) {
-        x = CASE::wrap(x + _x, COLUMNS);
-        y = CASE::wrap(y + _y, ROWS);
-    }
     bool active() const { return alive; }
     void activate() { alive = true; }
-    void deactivate() { alive = false; }
+    void deactivate() {
+        alive = false;
+    }
 };
 
 Agent::Agent(const Type _type) {
     if (_type == None) {
         auto r = rng(0, 100);
-        if (r > 90)
+        if (r > 99)
             type = Fox;
         else if (r > 70)
             type = Rabbit;
@@ -81,14 +75,17 @@ Agent::Agent(const Type _type) {
         this->type = _type;
 
     if (type == Fox) {
+        foxes++;
         energy = 200;
         z = 0;
     }
     else if (type == Rabbit) {
+        rabbits++;
         energy = 255;
         z = 0;
     }
     else {
+        grasses++;
         energy = 50;
         z = 1;
     }
@@ -99,7 +96,7 @@ void Agent::update(CASE::Grid<Cell> & grid) {
         return;
 
     if (energy <= 0) {
-        deactivate();
+        grid.kill(*this);
         if (type == Grass)
             --grasses;
         else if (type == Rabbit)
@@ -113,6 +110,7 @@ void Agent::update(CASE::Grid<Cell> & grid) {
     auto neighbors = cell->neighbors();
 
     if (type == Grass) {
+        assert(z == 1);
 
         Cell & cell = neighbors(vec.x, vec.y);
 
@@ -123,68 +121,64 @@ void Agent::update(CASE::Grid<Cell> & grid) {
                 grass_neighbor->energy = max_energy;
         }
 
-        if (energy > 0.3 * max_energy) {
+        else if (energy > 0.3 * max_energy) {
             Agent grass{Grass};
             grass.z = 1;
-            grass.setpos(x + vec.x, y + vec.y);
-            if (grid.spawn(grass) == CASE::OK)
-                ++grasses;
+            auto ptr = grid.spawn(grass, cell);
+            if (ptr != nullptr) {
+                assert(ptr->type == Grass);
+                assert(ptr->z == 1);
+            }
         }
     }
 
     else if (type == Rabbit) {
+        assert(z == 0);
 
-        energy -= 1;
-        bool breed = rng(1, 20) < 2 && energy > 0.5 * max_energy;
+        energy -= 4;
+        bool breed = rng(1, 20) < 2 && energy > 0.6 * max_energy;
 
         auto & cell = neighbors(vec.x, vec.y);
 
         if (breed) {
             Agent kit{Rabbit};
             kit.z = 0;
-            kit.setpos(x + vec.x, y + vec.y);
             kit.energy = energy;
-
-            auto code = grid.spawn(kit);
-            if (code == CASE::OK) {
+            auto ptr = grid.spawn(kit, cell);
+            if (ptr != nullptr) {
+                assert(ptr->type == Rabbit);
+                ptr->energy = energy;
                 energy -= 20;
                 ++rabbits;
             }
         }
-
         auto grass = cell.getlayer(1);
         if (grass!= nullptr) {
             energy += grass->energy;
             grass->energy -= 50;
         }
-
         const auto dir = random_direction();
-        grid.move(this, dir.x, dir.y);
+        neighbors(dir.x, dir.y).insert(this);
     }
 
     else { // type is Fox
+        assert(z == 0);
 
         energy -= 10;
+        const auto breed = rng(1, 100) < 5 && energy > 0.75 * max_energy;
 
-        const auto breed = rng(1, 100) < 5 && energy > 0.7 * max_energy;
-
-        auto neighbors = cell->neighbors();
         if (breed) {
-            const auto vec = random_direction();
-            auto & cell = neighbors(vec.x, vec.y);
-
             Agent cub{Fox};
             cub.z = 0;
-            cub.setpos(x + vec.x, y + vec.y);
+            auto ptr = grid.spawn(cub, cell->x+vec.x, cell->y+vec.y);
 
-            if (grid.spawn(cub) == CASE::OK) {
-                energy -= 20;
+            if (ptr != nullptr) {
+                assert(ptr->type == Fox);
+                //energy -= 20;
                 ++foxes;
             }
         }
-
-        auto cellpointers = neighbors.cells();
-        for (Cell * cellptr : cellpointers) { 
+        for (Cell * cellptr : neighbors.cells()) { 
             auto ptr = cellptr->getlayer(0);
             if (ptr == nullptr)
                 continue;
@@ -193,15 +187,15 @@ void Agent::update(CASE::Grid<Cell> & grid) {
             if (agent.type == Rabbit) {
                 energy += 50;
                 agent.energy = 0;
+                break;
             }
         }
-
         const auto dir = random_direction();
-        grid.move(this, dir.x, dir.y);
+        neighbors(dir.x, dir.y).insert(this);
     }
 }
 
-void Agent::draw(std::vector<sf::Vertex> & vs) const {
+void Agent::draw(const int x, const int y, std::vector<sf::Vertex> & vs) const {
     const auto i = vs.size();
     vs.resize(vs.size() + 4);
 
@@ -231,22 +225,24 @@ struct Config {
     static constexpr int columns = COLUMNS;
     static constexpr int rows = ROWS;
     static constexpr int cell_size = CELL_SIZE;
-    static constexpr int max_agents = columns * rows * 2;
-    static constexpr int subset = max_agents * 1;
+    static constexpr int subset = columns * rows * Cell::depth;
+
     const double framerate = 60;
     const char* title = "Foxes and Rabbits";
-    const sf::Color bgcolor{0,0,0}; //= sf::Color{147, 113, 66};
+    const sf::Color bgcolor{0,0,0};
 
     void init(Grid & grid) {
         grid.clear();
 
-        for (auto i = 0 ; i < max_agents * 0.1 ; i++) {
+        for (auto i = 0; i < subset; i++){
             const auto x = rng(0, columns - 1);
             const auto y = rng(0, rows - 1);
 
             Agent agent{None};
-            agent.setpos(x, y);
-            grid(x, y).insert(agent);
+            auto ptr = grid.spawn(agent, x, y);
+
+            if (ptr == nullptr)
+                continue;
 
             switch (agent.type) {
                 case Grass: grasses++; break;
@@ -257,8 +253,55 @@ struct Config {
     }
 
     void postprocessing(Grid & grid) {
-        static CASE::Log log{"data/pop.dat"};
-        log.out(foxes+rabbits+grasses);
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) {
+            std::cout << "   ";
+            for (auto x = 0; x < COLUMNS; x++) {
+                if (x < 10) std::cout << " " ;
+                std::cout << " " << x;
+            }
+            std::cout << '\n' ;
+
+            for (auto y = 0; y < ROWS; y++) {
+                if (y < 10) std::cout << " ";
+                std::cout << " " << y ;
+                for (auto x = 0; x < COLUMNS; x++) {
+                    if (grid(x, y).getlayer(0) == nullptr)
+                        
+                        std::cout<<"  .";
+
+                    else
+                    {
+                        auto & agent = *grid(x, y).getlayer(0);
+                        if (agent.type == Rabbit)
+                            std::cout << "  R";
+                        if (agent.type == Fox)
+                            std::cout << "  F";
+                    }
+                }
+                std::cout<<'\n';
+            }
+            std::cout << "\n";
+            /*
+            for (auto i = 0; i < COLUMNS*ROWS*2; i++) {
+                auto & agent = grid.agents[i];
+                if (agent.active() == false) continue;
+
+                assert(agent.cell != nullptr);
+
+                if (agent.type == Grass)
+                    std::cout << "Grass";
+                if (agent.type == Rabbit)
+                    std::cout << "Rabbit";
+                if (agent.type == Fox)
+                    std::cout << "Fox";
+
+                std::cout << " position " << 
+                    agent.cell->x << ", " << agent.cell->y << std::endl;
+            }
+            */
+        }
+        //static CASE::Log log{"data/pop.dat"};
+        //log.out(foxes+rabbits+grasses);
     }
 };
 
