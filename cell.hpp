@@ -1,80 +1,110 @@
 #ifndef CASE_CELL
 #define CASE_CELL
 
+#include <vector>
+#include <SFML/Graphics/Vertex.hpp>
+
 #include "code.hpp"
 #include "neighbors.hpp"
 
 namespace CASE {
 
-template <class Agent, int LAYERS>
+template <class T, int LAYERS>
 class ZCell {
 
     static_assert(LAYERS > 0, "ZCell LAYERS must be > 0.");
-    Agent array[LAYERS];
+    T * array[LAYERS];
 
 public:
+    using Agent = T;
     static constexpr int depth = LAYERS;
+    int x = 0, y = 0;
     int index = 0;
 
-    ZCell() {}
+    ZCell() {
+        for (auto i = 0; i < depth; i++)
+            array[i] = nullptr;
+    }
 
     void operator=(ZCell & other) {
         for (auto i = 0; i < LAYERS; i++)
             replace(other.extract(i));
     }
 
+    auto replace(Agent & agent) {
+        extract(agent.z);
+        return insert(agent);
+    }
+
     auto neighbors() {
         return Neighbors<ZCell>{this};
     }
 
-    template <class Grid>
-    void update(Grid & grid) {
-        for (auto & agent : array) {
-            if (agent.active())
-                agent.update(grid);
-        }
-    }
-
     void draw(std::vector<sf::Vertex> & vertices) const {
         for (auto i = depth - 1; i > -1 ; --i) {
-            if (array[i].active())
-                array[i].draw(vertices);
+            const auto layer = array[i];
+            if (layer != nullptr)
+                layer->draw(x, y, vertices);
         }
     }
 
-    Agent & insert(const Agent & agent) {
-        assert(agent.z < LAYERS);
-        assert(agent.z >= 0);
+    Code insert(Agent & agent) {
+        const auto layer = agent.z;
 
-        array[agent.z] = agent;
-        array[agent.z].activate();
-        array[agent.z].cell = this;
+        if (array[layer] != nullptr) {
+            auto & occupant = *array[layer];
+            if (occupant.active()) {
+                if (occupant.cell == this)
+                    return Rejected;
+            }
+            else
+                extract(layer);
+        }
 
-        return array[agent.z];
+        if (agent.cell != nullptr)
+            agent.cell->extract(layer);
+
+        array[layer] = &agent;
+        array[layer]->activate();
+        array[layer]->cell = this;
+
+        return OK;
     }
 
-    Agent extract(const int layer) {
+    Code insert(Agent * agent) {
+        if (agent == nullptr)
+            return Rejected;
+        else
+            return insert(*agent);
+    }
+
+    void force_insert(Agent * agent) {
+        extract(agent->z);
+        array[agent->z] = agent;
+        agent->cell = this;
+        agent->activate();
+    }
+
+    Agent * extract(const int layer) {
         assert(layer < LAYERS);
         assert(layer >= 0);
 
-        auto & agent = array[layer];
-        agent.deactivate();
-        agent.cell = nullptr;
-        return agent;
-    }
+        auto agent = array[layer];
 
-    void replace(const Agent & agent) {
-        extract(agent.z);
-        return insert(agent);
+        if (agent != nullptr) {
+            array[layer] = nullptr;
+            agent->cell = nullptr;
+            agent->deactivate();
+        }
+
+        return agent;
     }
 
     Agent * getlayer(const int layer) {
         assert(layer < LAYERS);
         assert(layer >= 0);
-        if (array[layer].active())
-            return &array[layer];
-        else
-            return nullptr;
+
+        return array[layer];
     }
 
     void swap_with(ZCell & other) {
@@ -86,14 +116,14 @@ public:
     }
 
     void clear() {
-        for (auto & agent : array)
-            agent.deactivate();
+        for (auto i = 0; i < depth; i++)
+            extract(i);
     }
 
     int popcount() const {
         auto count = 0;
-        for (const auto & agent : array) {
-            if (agent.active())
+        for (const auto layer : array) {
+            if (layer != nullptr)
                 count++;
         }
         return count;
