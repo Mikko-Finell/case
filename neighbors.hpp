@@ -37,10 +37,12 @@ public:
     {}
 
     Cell & operator()(const int x, const int y) const {
+        assert(self != nullptr);
         const int i = self->index;
         const int gx = (i % columns) + x;
         const int gy = (i / columns) + y;
-        return *(self - i + index(wrap(gx, columns), wrap(gy, rows), columns));
+        const auto offset = index(wrap(gx, columns), wrap(gy, rows), columns);
+        return *(self - i + offset);
     }
 };
 
