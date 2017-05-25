@@ -25,6 +25,8 @@ public:
 
     bool status = true;
     bool active() const { return status; }
+    void activate() { status = true; }
+    void deactivate() { status = false; }
 };
 
 bool insert() {
@@ -44,7 +46,7 @@ bool extract() {
     return cell.extract(a.z) == &a && cell.popcount() == 2
         && cell.extract(b.z) == &b && cell.popcount() == 1
         && cell.extract(c.z) == &c && cell.is_empty()
-        && cell.extract_top() == nullptr;
+        && cell.extract(0) == nullptr;
 }
 
 bool get() {
@@ -53,7 +55,7 @@ bool get() {
     cell.insert(a);
     cell.insert(b);
     cell.insert(c);
-    return cell.get() == &a;
+    return cell.getlayer(0) == &a;
 }
 
 bool clear() {
@@ -68,7 +70,7 @@ bool clear() {
 }
 
 bool insertion0() {
-    CASE::SimpleCell<t1Agent<1>> cell0, cell1;
+    CASE::ZCell<t1Agent<1>, 1> cell0, cell1;
     t1Agent<1> a, b;
     cell0.insert(a);
     cell1.insert(b);
@@ -82,43 +84,44 @@ bool relocation0() {
     cell0.insert(a);
     cell1.insert(b);
 
-    cell1.insert(cell0.extract_top());
+    cell1.insert(cell0.extract(0));
 
     return b.cell == &cell1 && a.cell == &cell1;
 }
 
 bool extraction0() {
-    CASE::SimpleCell<t1Agent<1>> cell;
+    CASE::ZCell<t1Agent<1>, 1> cell;
     t1Agent<1> a;
     cell.insert(a);
     assert(a.cell == &cell);
     cell.extract(a.z);
-    return a.cell == nullptr;
+    return a.cell == nullptr && cell.getlayer(a.z) == nullptr;
+}
+
+bool reject() {
+    CASE::ZCell<t2Agent, 2> cell;
+    t2Agent a, b;
+    a.activate();
+    b.activate();
+
+    assert(cell.insert(a) == CASE::OK);
+
+    bool test = cell.insert(b) == CASE::Rejected;
+
+    return test;
 }
 
 bool insertion1() {
-    CASE::ZCell<t2Agent, 2> cell;
+    CASE::ZCell<t2Agent, 2> cell_a, cell_b;
     t2Agent a;
-    assert(cell.insert(a) == CASE::Code::OK);
-    assert(cell.is_occupied());
-    a.status = false;
-    return cell.is_empty();
-}
+    cell_a.insert(a);
 
-bool relocation1() {
-    CASE::ZCell<t2Agent, 2> cell0, cell1;
-    t2Agent a;
-    cell0.insert(a);
-    return cell1.insert(a) == CASE::Code::Rejected;
-}
+    assert(cell_a.getlayer(a.z) == &a);
+    
+    cell_b.insert(a);
 
-bool extraction1() {
-    CASE::ZCell<t2Agent, 2> cell;
-    t2Agent a;
-    assert(cell.insert(a) == CASE::Code::OK);
-    assert(cell.getlayer(0) == &a);
-    a.status = false;
-    return cell.extract(0) == nullptr;
+    return a.cell == &cell_b && cell_b.getlayer(a.z) == &a
+        && cell_a.getlayer(a.z) == nullptr;
 }
 
 void run() {
@@ -132,10 +135,9 @@ void run() {
     test1.fn("insertion", insertion0);
     test1.fn("relocation", relocation0);
     test1.fn("extraction", extraction0);
+    test1.fn("full cell insert rejected", reject);
 
-    cpptest::Module test2{"deactivated agent removed"};
+    cpptest::Module test2{"old cell agent removed"};
     test2.fn("insertion", insertion1);
-    test2.fn("relocation", relocation1);
-    test2.fn("extraction", extraction1);
 }
 }

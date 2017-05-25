@@ -68,65 +68,180 @@ struct Pos {
 };
 
 class Agent {
-    bool alive = true;
+    bool alive = false;
+
 public:
-    Pos pos;
+    int x, y;
     int z = 0;
-    CASE::SimpleCell<Agent> * cell = nullptr;
+    bool updated = false;
+
+    CASE::ZCell<Agent, 1> * cell = nullptr;
     bool active() { return alive; }
+    void activate() { alive = true; }
+    void deactivate() { alive = false; }
+    
+    template <class Grid>
+    void update(Grid&) {
+        updated = true;
+    }
 };
 
-using Cell = CASE::SimpleCell<Agent>;
+using namespace CASE;
 
-bool check(Cell & cell, const Pos & size) {
-    std::vector<bool> results;
-    const auto pos = cell.get()->pos;
-    static const int range[3] = {-1, 0, 1};
-    for (const auto y : range) {
-        for (const auto x : range) {
-            auto expected_pos = Pos{pos.x + x, pos.y + y};
+bool update() {
+    Grid<ZCell<Agent, 1>> grid{2, 2};
+    Agent model;
 
-            if (pos.x + x < 0)
-                expected_pos.x = size.x - 1;
-            if (pos.x + x == size.x)
-                expected_pos.x = 0;
-
-            if (pos.y + y < 0)
-                expected_pos.y = size.y - 1;
-            if (pos.y + y == size.y)
-                expected_pos.y = 0;
-
-            if (!(cell.neighbors(x, y)->pos == expected_pos)) {
-                std::cout << "Error, expected " << expected_pos.x
-                    << ", " << expected_pos.y << " but got "
-                    << cell.neighbors(x, y)->pos.x << ", "
-                    << cell.neighbors(x, y)->pos.y << std::endl;
-            }
-            results.push_back(cell.neighbors(x, y)->pos == expected_pos);
-        }
+    int i = 0;
+    for (int y = 0; y < 2; y++) {
+        for (int x = 0; x < 2; x++)
+            grid.spawn(model, x, y);
     }
-    return std::all_of(results.begin(), results.end(), [](bool b){ return b; });
+    assert(grid.agent_count() == 4);
+    grid.update(4);
+
+    assert(grid.agent_count() == 4);
+
+    /*
+    for (int i = 0; i < 4; i++)
+        std::cout << &grid.cells[i] << " agent = "
+            << grid.cells[i].getlayer(0) << std::endl;
+    for (int i = 0; i < 4; i++) 
+        std::cout << &grid.agents[i] << " cell = "
+            << grid.agents[i].cell << std::endl;
+    */
+    
+    bool test[4] = {0,0,0,0};
+    for (int i = 0; i < 4; i++)
+        test[i] = grid.agents[i].updated;
+
+    return test[0]&&test[1]&&test[2]&&test[3];
 }
 
-bool t(int x, int y) {
-    CASE::Grid<Cell> grid{x, y};
-    auto agents = new Agent[x * y];
+bool spawn0() {
+    Grid<ZCell<Agent, 1>> grid{2, 2};
+    Agent model;
 
-    for (auto row = 0; row < y; row++) {
-        for (auto col = 0; col < x; col++) {
-            grid(col, row).insert(agents[CASE::index(col, row, x)]);
-            grid(col, row).get()->pos = Pos{col, row};
-        }
+    for (int y = 0; y < 2; y++)
+        for (int x = 0; x < 2; x++)
+            grid.spawn(model, x, y);
+
+    grid.update(4);
+    assert(grid.agent_count() == 4);
+
+    for (int y = 0; y < 2; y++)
+        for (int x = 0; x < 2; x++)
+            grid(x,y).getlayer(0)->deactivate();
+
+    grid.update(4);
+    assert(grid.agent_count() == 0);
+
+    grid.spawn(model, 0, 0);
+    grid.spawn(model, 1, 0);
+    grid.spawn(model, 0, 1);
+    grid.spawn(model, 1, 1);
+
+    grid.update(4);
+
+    return(grid.agent_count() == 4);
+}
+
+bool spawn1() {
+    Grid<ZCell<Agent, 1>> grid{2, 2};
+    Agent model;
+
+    for (int y = 0; y < 2; y++)
+        for (int x = 0; x < 2; x++)
+            grid.spawn(model, x, y);
+
+    grid.update(4);
+    assert(grid.agent_count() == 4);
+
+    for (auto i = 0; i < 4; i++)
+        grid.agents[i].updated = false;
+    
+    grid.agents[0].deactivate();
+    grid.agents[1].deactivate();
+
+    grid.update(4);
+    bool test[4] = {0,0,0,0};
+    for (auto i = 0; i < 4; i++) {
+        if (grid.agents[i].active())
+            test[i] = grid.agents[i].updated;
+        else
+            test[i] = grid.agents[i].updated == false;
     }
+    return grid.agent_count() == 2 && test[0]&&test[1]&&test[2]&&test[3];
+}
 
-    std::vector<bool> results;
-    for (auto row = 0; row < y; row++) {
-        for (auto col = 0; col < x; col++)
-            results.push_back(check(grid(col, row), Pos{x, y}));
-    }
+bool spawn2() {
+    Grid<ZCell<Agent, 1>> grid{2, 2};
+    Agent model;
 
-    delete [] agents;
-    return std::all_of(results.begin(), results.end(), [](bool b){ return b; });
+    auto p0 = grid.spawn(model, 0, 0);
+    auto p1 = grid.spawn(model, 1, 0);
+    auto p2 = grid.spawn(model, 0, 1);
+    auto p3 = grid.spawn(model, 1, 1);
+
+    grid.update(4);
+    assert(grid.agent_count() == 4);
+
+    grid(1, 0).getlayer(0)->deactivate();
+    grid(1, 1).getlayer(0)->deactivate();
+
+    grid.update(4);
+
+    auto p4 = grid.spawn(model, 1, 0);
+    auto p5 = grid.spawn(model, 1, 1);
+
+    for (int y = 0; y < 2; y++)
+        for (int x = 0; x < 2; x++)
+            assert(grid.spawn(model, x, y) == nullptr);
+
+    return false;
+}
+
+bool changecell() {
+    Grid<ZCell<Agent, 1>> grid{2, 2};
+    Agent model;
+
+    for (int y = 0; y < 2; y++)
+        for (int x = 0; x < 2; x++)
+            grid.spawn(model, x, y);
+
+    grid.update(4);
+
+    auto agent = grid(0, 0).getlayer(0);
+    auto t0 = grid(1, 1).insert(agent) == CASE::Rejected;
+
+    grid(1, 1).getlayer(0)->deactivate();;
+
+    auto t1 = grid(1, 1).insert(agent) == CASE::OK;
+
+    return t0 && t1 && agent->cell == & grid(1, 1);
+}
+
+bool tkill() {
+    Grid<ZCell<Agent, 1>> grid{2, 2};
+    Agent model;
+
+    for (int y = 0; y < 2; y++)
+        for (int x = 0; x < 2; x++)
+            grid.spawn(model, x, y);
+
+    grid.update(4);
+
+    grid.kill(*grid(0,0).getlayer(0));
+    grid.kill(*grid(1,0).getlayer(0));
+    grid.kill(*grid(0,1).getlayer(0));
+    grid.kill(*grid(1,1).getlayer(0));
+
+    bool t[4]={0,0,0,0};
+
+    for (auto i = 0; i < 4; i++)
+        t[i] = grid.agents[i].active() == false;
+
+    return grid.agent_count() == 0 && t[0]&&t[1]&&t[2]&&t[3];
 }
 
 void run() {
@@ -148,78 +263,13 @@ void run() {
         tindex.fn(name, [k]{ return rm(k, k); });
     }
 
-    const auto seed = std::random_device()();
-    std::mt19937 rng(seed);
-    std::uniform_int_distribution<int> dist(1, 1000);
-
-    for (auto x = 1; x < 100; x++) {
-        const auto y = dist(rng);
-        const auto name = std::to_string(x) + "x" + std::to_string(y);
-        tindex.fn(name, [x, y]{ return rm(x, y); });
-    }
-    for (auto y = 1; y < 100; y++) {
-        const auto x = dist(rng);
-        const auto name = std::to_string(x) + "x" + std::to_string(y);
-        tindex.fn(name, [x, y]{ return rm(x, y); });
-    }
-    for (auto i = 1; i < 100; i++) {
-        const auto x = dist(rng), y = dist(rng);
-        const auto name = std::to_string(x) + "x" + std::to_string(y);
-        tindex.fn(name, [x, y]{ return rm(x, y); });
-    }
-
-    std::vector<std::future<bool>> results;
-    {
-        std::uniform_int_distribution<int> dist(1, 120);
-        for (auto k = 0; k < 1000; k++) {
-            const auto _seed = seed * k;
-            results.push_back(std::async(std::launch::async, [_seed, &dist]{
-                std::vector<bool> r;
-                std::mt19937 rng(_seed);
-                for (auto i = 0; i < 5; i++) {
-                    const auto x = dist(rng), y = dist(rng);
-                    r.push_back(t(x, y));
-                }
-                return std::all_of(r.begin(), r.end(), [](bool b){ return b; });
-            }));
-        }
-    }
-
-    {
-        cpptest::Module test{"grid"};
-        for (auto & result : results)
-            test.fn("connectome", [&]{ return result.get(); });
-
-        test.fn("1 x 1", []{ return t(1, 1); });
-        test.fn("2 x 2", []{ return t(2, 2); });
-        test.fn("3 x 3", []{ return t(3, 3); });
-        test.fn("4 x 4", []{ return t(4, 4); });
-        test.fn("5 x 5", []{ return t(5, 5); });
-        test.fn("6 x 6", []{ return t(6, 6); });
-        test.fn("7 x 7", []{ return t(7, 7); });
-        test.fn("8 x 8", []{ return t(8, 8); });
-
-        test.fn("2 x 1", []{ return t(1+1, 1); });
-        test.fn("3 x 1", []{ return t(1+2, 1); });
-        test.fn("4 x 1", []{ return t(1+3, 1); });
-        test.fn("5 x 1", []{ return t(1+4, 1); });
-        test.fn("6 x 1", []{ return t(1+5, 1); });
-        test.fn("7 x 1", []{ return t(1+6, 1); });
-        
-        test.fn("2 x 3", []{ return t(2, 2+1); });
-        test.fn("3 x 4", []{ return t(3, 3+1); });
-        test.fn("4 x 5", []{ return t(4, 4+1); });
-        test.fn("5 x 6", []{ return t(5, 5+1); });
-        test.fn("6 x 7", []{ return t(6, 6+1); });
-        test.fn("7 x 8", []{ return t(7, 7+1); });
-        test.fn("8 x 9", []{ return t(8, 8+1); });
-        test.fn("2 x 1", []{ return t(1+1, 1); });
-        test.fn("3 x 2", []{ return t(2+1, 2); });
-        test.fn("4 x 3", []{ return t(3+1, 3); });
-        test.fn("5 x 4", []{ return t(4+1, 4); });
-        test.fn("6 x 5", []{ return t(5+1, 5); });
-        test.fn("7 x 6", []{ return t(6+1, 6); });
-    }
+    cpptest::Module grid{"grid"};
+    grid.fn("update", update);
+    grid.fn("spawn 0", spawn0);
+    grid.fn("die: not updated", spawn1);
+    grid.fn("spawn in cell", spawn2);
+    grid.fn("change cells", changecell);
+    grid.fn("kill", tkill);
 }
 
 }
