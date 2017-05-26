@@ -6,6 +6,7 @@
 
 #include "code.hpp"
 #include "neighbors.hpp"
+#include "agent_manager.hpp"
 
 namespace CASE {
 
@@ -14,9 +15,30 @@ class ZCell {
 
     static_assert(LAYERS > 0, "ZCell LAYERS must be > 0.");
     T * array[LAYERS];
+    AgentManager<T> * manager = nullptr;
+
+    T * _spawn(T ** t) {
+        assert(manager != nullptr);
+
+        T *& pointer = *t;
+
+        pointer = manager->spawn(pointer);
+        if (pointer == nullptr)
+            return nullptr;
+
+        const auto code = insert(*pointer);
+        if (code == Rejected) {
+            pointer->deactivate();
+            return nullptr;
+        }
+
+        return pointer;
+    }
 
 public:
+
     using Agent = T;
+
     static constexpr int depth = LAYERS;
     int x = 0, y = 0;
     int index = 0;
@@ -24,6 +46,15 @@ public:
     ZCell() {
         for (auto i = 0; i < depth; i++)
             array[i] = nullptr;
+    }
+
+    ZCell(AgentManager<Agent> & am) : ZCell{}
+    {
+        set_manager(am);
+    }
+
+    void set_manager(AgentManager<Agent> & am) {
+        manager = &am;
     }
 
     void operator=(ZCell & other) {
@@ -40,11 +71,19 @@ public:
         return Neighbors<ZCell>{this};
     }
 
+    Agent * spawn(Agent *& pointer) {
+        return _spawn(&pointer);
+    }
+
+    Agent * spawn(Agent *&& pointer) {
+        return _spawn(&pointer);
+    }
+
     void draw(std::vector<sf::Vertex> & vertices) const {
-        for (auto i = depth - 1; i > -1 ; --i) {
-            const auto layer = array[i];
-            if (layer != nullptr)
-                layer->draw(x, y, vertices);
+        for (auto i = depth - 1; i >= 0; --i) {
+            const auto occupant = array[i];
+            if (occupant != nullptr && occupant->active())
+                occupant->draw(x, y, vertices);
         }
     }
 
@@ -52,11 +91,9 @@ public:
         const auto layer = agent.z;
 
         if (array[layer] != nullptr) {
-            auto & occupant = *array[layer];
-            if (occupant.active()) {
-                if (occupant.cell == this)
-                    return Rejected;
-            }
+            if (array[layer]->active())
+                return Rejected;
+
             else
                 extract(layer);
         }
@@ -65,8 +102,8 @@ public:
             agent.cell->extract(layer);
 
         array[layer] = &agent;
-        array[layer]->activate();
         array[layer]->cell = this;
+        array[layer]->activate();
 
         return OK;
     }
@@ -89,21 +126,17 @@ public:
         assert(layer < LAYERS);
         assert(layer >= 0);
 
-        auto agent = array[layer];
-
-        if (agent != nullptr) {
+        if (array[layer] != nullptr) {
+            array[layer]->cell = nullptr;
+            array[layer]->deactivate();
             array[layer] = nullptr;
-            agent->cell = nullptr;
-            agent->deactivate();
         }
-
-        return agent;
+        return array[layer];
     }
 
     Agent * getlayer(const int layer) {
         assert(layer < LAYERS);
         assert(layer >= 0);
-
         return array[layer];
     }
 

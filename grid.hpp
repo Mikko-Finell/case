@@ -5,9 +5,7 @@
 
 #include "code.hpp"
 #include "index.hpp"
-#include "random.hpp"
-#include "log.hpp"
-#include "timer.hpp"
+#include "agent_manager.hpp"
 
 namespace CASE {
 
@@ -17,37 +15,27 @@ class Grid {
 
     int columns = 0;
     int rows = 0;
-    std::mt19937 rng;
 
     inline Cell & get(const int x, const int y) {
-        assert(_index(x, y) >= 0);
-        assert(_index(x, y) < columns * rows);
         return cells[index(wrap(x, columns), wrap(y, rows), columns)];
     }
 
 public:
     Cell * cells = nullptr;
-    Agent * agents = nullptr;
 
     ~Grid() {
         if (cells != nullptr)
             delete [] cells;
         cells = nullptr;
-        if (agents != nullptr)
-            delete [] agents;
-        agents = nullptr;
     }
 
-    Grid() {
-        std::random_device rd;
-        rng.seed(rd());
+    Grid() {}
+
+    Grid(const int cols, const int _rows, AgentManager<Agent> & manager) {
+        init(cols, _rows, manager);
     }
 
-    Grid(const int cols, const int _rows) {
-        init(cols, _rows);
-    }
-
-    void init(const int cols, const int _rows) {
+    void init(const int cols, const int _rows, AgentManager<Agent> & manager) {
         assert(cols >= 1);
         assert(_rows >= 1);
 
@@ -65,51 +53,11 @@ public:
                 cell.x = x;
                 cell.y = y;
                 cell.index = index++;
+                cell.set_manager(manager);
             }
         }
+    }
     
-        // init agents
-        if (agents != nullptr)
-            delete [] agents;
-
-        agents = new Agent[max_agents()];
-    }
-
-    void update(const int subset) {
-        for (auto i = 0; i < max_agents(); i++) {
-            if (agents[i].active())
-                agents[i].update(*this);
-        }
-    }
-
-    void kill(Agent & agent) {
-        agent.deactivate();
-        agent.cell->extract(agent.z);
-    }
-
-    Agent * spawn(Agent & agent, Cell & cell) {
-        for (int i = 0; i < max_agents(); i++) {
-            if (agents[i].active() == false) {
-                agents[i] = agent;
-                if (agents[i].cell != nullptr)
-                    agents[i].cell->extract(agent.z);
-
-                if (cell.insert(agents[i]) == OK) {
-                    agents[i].activate();
-                    return &agents[i];
-                }
-                else
-                    return nullptr;
-            }
-        }
-        return nullptr;
-    }
-
-    Agent * spawn(Agent & agent, const int x, const int y) {
-        auto & cell = get(x, y);
-        return spawn(agent, cell);
-    }
-
     Cell & operator()(const int x, const int y) {
         return get(x, y);
     }
@@ -125,15 +73,6 @@ public:
 
     inline int cell_count() const {
         return rows * columns;
-    }
-
-    inline int agent_count() const {
-        int count = 0;
-        for (int i = 0; i < max_agents(); i++) {
-            if (agents[i].active())
-                ++count;
-        }
-        return count;
     }
 
     inline int max_agents() const {
