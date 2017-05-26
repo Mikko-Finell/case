@@ -7,8 +7,8 @@
 #include "../cell.hpp"
 #include "../simulator.hpp"
 
-#define COLUMNS 150
-#define ROWS 150
+#define COLUMNS 256
+#define ROWS 256
 #define CELL_SIZE 3
 
 int rng(const int low, const int high) {
@@ -51,7 +51,7 @@ public:
     Cell * cell = nullptr;
 
     Agent(Type type = Type::None);
-    void update(CASE::Grid<Cell> & grid);
+    void update();
     void draw(const int, const int, std::vector<sf::Vertex> & vertices) const;
 
     bool active() const { return alive; }
@@ -66,7 +66,7 @@ Agent::Agent(const Type _type) {
         auto r = rng(0, 100);
         if (r > 99)
             type = Fox;
-        else if (r > 70)
+        else if (r > 85)
             type = Rabbit;
         else
             type = Grass;
@@ -91,18 +91,14 @@ Agent::Agent(const Type _type) {
     }
 }
 
-void Agent::update(CASE::Grid<Cell> & grid) {
-    if (!alive)
+void Agent::update() {
+    if (!alive) {
         return;
+    }
 
     if (energy <= 0) {
-        grid.kill(*this);
-        if (type == Grass)
-            --grasses;
-        else if (type == Rabbit)
-            --rabbits;
-        else
-            --foxes;
+        deactivate();
+        //cell->extract(this->z);
         return;
     }
 
@@ -112,48 +108,44 @@ void Agent::update(CASE::Grid<Cell> & grid) {
     if (type == Grass) {
         assert(z == 1);
 
-        Cell & cell = neighbors(vec.x, vec.y);
-
-        auto grass_neighbor = cell.getlayer(1);
+        auto grass_neighbor = neighbors(vec.x, vec.y).getlayer(1);
         if (grass_neighbor != nullptr) {
-            grass_neighbor->energy += 3;
+            grass_neighbor->energy += 2;
             if (grass_neighbor->energy > max_energy)
                 grass_neighbor->energy = max_energy;
         }
 
         else if (energy > 0.3 * max_energy) {
-            Agent grass{Grass};
-            grass.z = 1;
-            auto ptr = grid.spawn(grass, cell);
-            if (ptr != nullptr) {
-                assert(ptr->type == Grass);
-                assert(ptr->z == 1);
+
+            auto grass = neighbors(vec.x, vec.y).spawn(new Agent{Grass});
+            if (grass != nullptr) {
+                assert(grass->type == Grass);
+                assert(grass->z == 1);
+                assert(grass->cell == &neighbors(vec.x, vec.y));
+                assert(neighbors(vec.x, vec.y).getlayer(z) == grass);
             }
         }
     }
-
     else if (type == Rabbit) {
         assert(z == 0);
 
-        energy -= 4;
-        bool breed = rng(1, 20) < 2 && energy > 0.6 * max_energy;
-
-        auto & cell = neighbors(vec.x, vec.y);
+        energy -= 6;
+        bool breed = rng(1, 20) < 2 && energy > 0.7 * max_energy;
 
         if (breed) {
-            Agent kit{Rabbit};
-            kit.z = 0;
-            kit.energy = energy;
-            auto ptr = grid.spawn(kit, cell);
-            if (ptr != nullptr) {
-                assert(ptr->type == Rabbit);
-                ptr->energy = energy;
+            auto rabbit = neighbors(vec.x, vec.y).spawn(new Agent{Rabbit});
+            if (rabbit != nullptr) {
+                assert(rabbit->type == Rabbit);
+                assert(rabbit->z == 0);
+                assert(rabbit->cell == &neighbors(vec.x, vec.y));
+                assert(neighbors(vec.x, vec.y).getlayer(z) == rabbit);
+
+                rabbit->energy = energy;
                 energy -= 20;
-                ++rabbits;
             }
         }
-        auto grass = cell.getlayer(1);
-        if (grass!= nullptr) {
+        auto grass = cell->getlayer(1);
+        if (grass != nullptr) {
             energy += grass->energy;
             grass->energy -= 50;
         }
@@ -168,14 +160,14 @@ void Agent::update(CASE::Grid<Cell> & grid) {
         const auto breed = rng(1, 100) < 5 && energy > 0.75 * max_energy;
 
         if (breed) {
-            Agent cub{Fox};
-            cub.z = 0;
-            auto ptr = grid.spawn(cub, cell->x+vec.x, cell->y+vec.y);
+            auto fox = neighbors(vec.x, vec.y).spawn(new Agent{Fox});
+            if (fox != nullptr) {
+                assert(fox->type == Fox);
+                assert(fox->z == 0);
+                assert(fox->cell == &neighbors(vec.x, vec.y));
+                assert(neighbors(vec.x, vec.y).getlayer(z) == fox);
 
-            if (ptr != nullptr) {
-                assert(ptr->type == Fox);
-                //energy -= 20;
-                ++foxes;
+                energy -= 10;
             }
         }
         for (Cell * cellptr : neighbors.cells()) { 
@@ -201,7 +193,7 @@ void Agent::draw(const int x, const int y, std::vector<sf::Vertex> & vs) const {
 
     int r = 0, g = 0, b = 0;
     if (type == Grass)
-        g = -0.5 * energy + 250;
+        g = -0.5 * energy + 230;
 
     else if (type == Rabbit) {
         g = 155;
@@ -232,23 +224,14 @@ struct Config {
     const sf::Color bgcolor{0,0,0};
 
     void init(Grid & grid) {
+
         grid.clear();
 
-        for (auto i = 0; i < subset; i++){
+        for (auto i = 0; i < subset/2; i++){
             const auto x = rng(0, columns - 1);
             const auto y = rng(0, rows - 1);
 
-            Agent agent{None};
-            auto ptr = grid.spawn(agent, x, y);
-
-            if (ptr == nullptr)
-                continue;
-
-            switch (agent.type) {
-                case Grass: grasses++; break;
-                case Rabbit: rabbits++; break;
-                default: foxes++; break;
-            }
+            grid(x, y).spawn(new Agent{None});
         }
     }
 
