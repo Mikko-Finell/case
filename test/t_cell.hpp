@@ -1,5 +1,6 @@
 #include <cpptest.hpp>
 #include "../cell.hpp"
+#include "../world.hpp"
 
 namespace t_cell {
 
@@ -32,6 +33,7 @@ public:
 bool insert() {
     CASE::ZCell<t1Agent<2>, 2> cell;
     t1Agent<2> a, b{1}, c;
+
     return cell.insert(a) == CASE::Code::OK
         && cell.insert(b) == CASE::Code::OK
         && cell.insert(c) == CASE::Code::Rejected;
@@ -124,12 +126,45 @@ bool insertion1() {
         && cell_a.getlayer(a.z) == nullptr;
 }
 
+class t3Agent {
+    bool alive = false;
+    bool updated = false;
+
+    using Cell = CASE::ZCell<t3Agent, 2>;
+
+public:
+    int z = 0;
+    Cell * cell = nullptr;
+
+    void update() { updated = true; }
+    bool was_updated() const { return updated; }
+    void activate() { alive = true; }
+    void deactivate() { alive = false; }
+    bool active() const { return alive; }
+};
+
+} // t_cell
+
+namespace t_cell {
+
+bool spawn() {
+    using namespace CASE;
+
+    World<t3Agent> world{3};
+    ZCell<t3Agent, 2> cell{world};
+
+    auto ptr = cell.spawn(new t3Agent);
+
+    return ptr != nullptr && ptr->active() == true;
+}
+
 void run() {
     cpptest::Module test0{"ZCell"};
     test0.fn("insert", insert);
     test0.fn("extract", extract);
     test0.fn("get", get);
     test0.fn("clear", clear);
+
 
     cpptest::Module test1{"agent assigned cell"};
     test1.fn("insertion", insertion0);
@@ -139,5 +174,8 @@ void run() {
 
     cpptest::Module test2{"old cell agent removed"};
     test2.fn("insertion", insertion1);
+
+    cpptest::Module test3{"spawning"};
+    test3.fn("spawn", spawn);
 }
 }
