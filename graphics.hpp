@@ -122,7 +122,7 @@ class Job : public job::Base {
     volatile int array_size = 0;
 
 public:
-    Job(const int nth, const std::size_t n_threads)
+    Job(const int, const std::size_t)
         : job::Base(0, 1)
     {}
 

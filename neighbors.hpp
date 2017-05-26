@@ -38,6 +38,7 @@ public:
 
     Cell & operator()(const int x, const int y) const {
         assert(self != nullptr);
+
         const int i = self->index;
         const int gx = (i % columns) + x;
         const int gy = (i / columns) + y;
@@ -66,7 +67,7 @@ public:
     }
 
     auto cells() {
-        std::array<Cell *, 9> array{nullptr};
+        std::array<Cell *, 9> array{{nullptr}};
         static const int range[3] = {-1, 0, 1};
         for (const auto y : range) {
             for (const auto x : range)

@@ -1,15 +1,15 @@
 #ifndef CASE_SIM
 #define CASE_SIM
 
-//#include <iostream>
+#include <iostream>
 
 #include <SFML/Graphics.hpp>
-//#include <algorithm>
 
 #include "array_buffer.hpp"
 #include "static_update.hpp"
 #include "graphics.hpp"
 #include "grid.hpp"
+#include "agent_manager.hpp"
 #include "timer.hpp"
 #include "log.hpp"
 
@@ -18,15 +18,17 @@ namespace simulator {
 
 void eventhandling(sf::RenderWindow & window, bool & running, bool & pause,
                    bool & single_step, double & framerate,
-                   const std::function<void(bool &, bool &)> & reset);
+                   const std::function<void()> & reset);
 
 template<class Config>
 void Dynamic() {
     Config config;
+
     using Agent = typename Config::Agent;
+    assert(std::is_trivially_copyable<Agent>::value == true);
     using Cell = typename Config::Cell;
 
-    constexpr auto subset     = config.subset;
+    //constexpr auto subset     = config.subset;
     auto framerate            = config.framerate;
 
     sf::RenderWindow window;
@@ -40,18 +42,15 @@ void Dynamic() {
     Neighbors<Cell>::rows = config.rows;
 
     // note Grid must be constructed before graphics
-    Grid<Cell> grid{config.columns, config.rows};
+    AgentManager<Agent> manager{config.columns * config.rows * Cell::depth};
+    Grid<Cell> grid{config.columns, config.rows, manager};
     graphics::dynamic::SingleBuffer<Cell> graphics{window};
 
-    auto reset = [&config, &grid](bool & pause, bool & single_step)
+    auto reset = [&config, &grid]()
     {
         config.init(grid);
     };
-
-    config.init(grid);
-
-    graphics.clear(config.bgcolor);
-    graphics.draw(grid.cells, grid.cell_count());
+    reset();
 
     bool pause = false;
     bool running = true;
@@ -74,7 +73,7 @@ void Dynamic() {
             update_frame = true;
         }
         if (update_frame) {
-            grid.update(subset);
+            manager.update();
             config.postprocessing(grid);
         }
         graphics.clear(config.bgcolor);
@@ -149,7 +148,7 @@ void Static() {
 
 void eventhandling(sf::RenderWindow & window, bool & running, bool & pause,
                    bool & single_step, double & framerate,
-                   const std::function<void(bool &, bool &)> & reset)
+                   const std::function<void()> & reset)
 {
     sf::Event event;
     while (window.pollEvent(event)) {
@@ -165,7 +164,7 @@ void eventhandling(sf::RenderWindow & window, bool & running, bool & pause,
                     || _::isKeyPressed(_::LControl))
                 case sf::Keyboard::F5:
                     {
-                        reset(pause, single_step);
+                        reset();
                     }
                     continue;
 
