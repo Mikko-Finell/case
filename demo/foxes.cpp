@@ -7,8 +7,8 @@
 #include "../cell.hpp"
 #include "../simulator.hpp"
 
-#define COLUMNS 256
-#define ROWS 256
+#define COLUMNS 512
+#define ROWS 128
 #define CELL_SIZE 3
 
 int rng(const int low, const int high) {
@@ -223,9 +223,10 @@ struct Config {
     const char* title = "Foxes and Rabbits";
     const sf::Color bgcolor{0,0,0};
 
-    void init(Grid & grid) {
+    void init(Grid & grid, CASE::AgentManager<Agent> & manager) {
 
         grid.clear();
+        manager.clear();
 
         for (auto i = 0; i < subset/2; i++){
             const auto x = rng(0, columns - 1);
@@ -235,56 +236,7 @@ struct Config {
         }
     }
 
-    void postprocessing(Grid & grid) {
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) {
-            std::cout << "   ";
-            for (auto x = 0; x < COLUMNS; x++) {
-                if (x < 10) std::cout << " " ;
-                std::cout << " " << x;
-            }
-            std::cout << '\n' ;
-
-            for (auto y = 0; y < ROWS; y++) {
-                if (y < 10) std::cout << " ";
-                std::cout << " " << y ;
-                for (auto x = 0; x < COLUMNS; x++) {
-                    if (grid(x, y).getlayer(0) == nullptr)
-                        
-                        std::cout<<"  .";
-
-                    else
-                    {
-                        auto & agent = *grid(x, y).getlayer(0);
-                        if (agent.type == Rabbit)
-                            std::cout << "  R";
-                        if (agent.type == Fox)
-                            std::cout << "  F";
-                    }
-                }
-                std::cout<<'\n';
-            }
-            std::cout << "\n";
-            /*
-            for (auto i = 0; i < COLUMNS*ROWS*2; i++) {
-                auto & agent = grid.agents[i];
-                if (agent.active() == false) continue;
-
-                assert(agent.cell != nullptr);
-
-                if (agent.type == Grass)
-                    std::cout << "Grass";
-                if (agent.type == Rabbit)
-                    std::cout << "Rabbit";
-                if (agent.type == Fox)
-                    std::cout << "Fox";
-
-                std::cout << " position " << 
-                    agent.cell->x << ", " << agent.cell->y << std::endl;
-            }
-            */
-        }
-        //static CASE::Log log{"data/pop.dat"};
-        //log.out(foxes+rabbits+grasses);
+    void postprocessing(Grid & /*grid*/) {
     }
 };
 
