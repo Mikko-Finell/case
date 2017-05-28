@@ -17,19 +17,14 @@ class ZCell {
     T * array[LAYERS];
     AgentManager<T> * manager = nullptr;
 
-    T * _spawn(T ** t) {
-        assert(manager != nullptr);
-
-        T *& pointer = *t;
-
-        pointer = manager->spawn(pointer);
+    T * _spawn(T * pointer) {
         if (pointer == nullptr)
             return nullptr;
 
         const auto code = insert(*pointer);
         if (code == Rejected) {
             pointer->deactivate();
-            return nullptr;
+            pointer = nullptr;
         }
 
         return pointer;
@@ -67,24 +62,43 @@ public:
         return insert(agent);
     }
 
+    Agent * spawn(Agent *& pointer) {
+        assert(manager != nullptr);
+
+        return _spawn(manager->spawn(pointer));
+    }
+
+    Agent * spawn(Agent *&& pointer) {
+        assert(manager != nullptr);
+
+        return _spawn(manager->spawn(pointer));
+    }
+
+    Agent * spawn(Agent && agent) {
+        assert(manager != nullptr);
+
+        auto pointer = manager->spawn(std::forward<T>(agent));
+        return _spawn(pointer);
+    }
+
     auto neighbors() {
         return Neighbors<ZCell>{this};
     }
 
-    Agent * spawn(Agent *& pointer) {
-        return _spawn(&pointer);
-    }
+    Agent * getlayer(const int layer) {
+        assert(layer < LAYERS);
+        assert(layer >= 0);
 
-    Agent * spawn(Agent *&& pointer) {
-        return _spawn(&pointer);
-    }
-
-    void draw(std::vector<sf::Vertex> & vertices) const {
-        for (auto i = depth - 1; i >= 0; --i) {
-            const auto occupant = array[i];
-            if (occupant != nullptr && occupant->active())
-                occupant->draw(x, y, vertices);
+        if (array[layer] != nullptr) {
+            if (array[layer]->active() == false)
+                extract(layer);
         }
+
+        return array[layer];
+    }
+
+    Agent * operator[](const int layer) {
+        return getlayer(layer);
     }
 
     Code insert(Agent & agent) {
@@ -126,18 +140,13 @@ public:
         assert(layer < LAYERS);
         assert(layer >= 0);
 
-        if (array[layer] != nullptr) {
-            array[layer]->cell = nullptr;
-            array[layer]->deactivate();
+        auto occupant = array[layer];
+        if (occupant != nullptr) {
+            occupant->cell = nullptr;
+            occupant->deactivate();
             array[layer] = nullptr;
         }
-        return array[layer];
-    }
-
-    Agent * getlayer(const int layer) {
-        assert(layer < LAYERS);
-        assert(layer >= 0);
-        return array[layer];
+        return occupant;
     }
 
     void swap_with(ZCell & other) {
@@ -145,6 +154,14 @@ public:
             auto agent = extract(i);
             insert(other.extract(i));
             other.insert(agent);
+        }
+    }
+
+    void draw(std::vector<sf::Vertex> & vertices) const {
+        for (auto i = depth - 1; i >= 0; --i) {
+            const auto occupant = array[i];
+            if (occupant != nullptr && occupant->active())
+                occupant->draw(x, y, vertices);
         }
     }
 
