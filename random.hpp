@@ -17,7 +17,11 @@ public:
     }
 
     Random() {
+#ifdef CASE_NORANDOM
+        const auto seed = 0;
+#else
         const auto seed = std::random_device()();
+#endif
         engine.seed(seed);
     }
 
