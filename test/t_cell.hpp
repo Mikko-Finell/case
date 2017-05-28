@@ -1,6 +1,6 @@
 #include <cpptest.hpp>
 #include "../cell.hpp"
-#include "../world.hpp"
+#include "../agent_manager.hpp"
 
 namespace t_cell {
 
@@ -42,9 +42,13 @@ bool insert() {
 bool extract() {
     CASE::ZCell<t1Agent<3>, 3> cell;
     t1Agent<3> a{0}, b{1}, c{2};
-    cell.insert(a);
-    cell.insert(b);
-    cell.insert(c);
+    a.activate(); b.activate(); c.activate();
+    assert(cell.insert(a) == CASE::OK);
+    assert(cell[a.z] == &a);
+    assert(cell.insert(b) == CASE::OK);
+    assert(cell[b.z] == &b);
+    assert(cell.insert(c) == CASE::OK);
+    assert(cell[c.z] == &c);
     return cell.extract(a.z) == &a && cell.popcount() == 2
         && cell.extract(b.z) == &b && cell.popcount() == 1
         && cell.extract(c.z) == &c && cell.is_empty()
@@ -147,13 +151,24 @@ public:
 
 namespace t_cell {
 
-bool spawn() {
+bool spawnptr() {
     using namespace CASE;
 
-    World<t3Agent> world{3};
+    AgentManager<t3Agent> world{3};
     ZCell<t3Agent, 2> cell{world};
 
     auto ptr = cell.spawn(new t3Agent);
+
+    return ptr != nullptr && ptr->active() == true;
+}
+
+bool spawnref() {
+    using namespace CASE;
+
+    AgentManager<t3Agent> world{3};
+    ZCell<t3Agent, 2> cell{world};
+
+    auto ptr = cell.spawn(t3Agent{});
 
     return ptr != nullptr && ptr->active() == true;
 }
@@ -176,6 +191,7 @@ void run() {
     test2.fn("insertion", insertion1);
 
     cpptest::Module test3{"spawning"};
-    test3.fn("spawn", spawn);
+    test3.fn("spawn by ptr", spawnptr);
+    test3.fn("spawn by ref", spawnref);
 }
 }
