@@ -47,6 +47,28 @@ public:
     }
 };
 
+template<int LOW, int HIGH>
+class RDist {
+    mutable std::mt19937 engine;
+    mutable std::uniform_int_distribution<int> dist{LOW, HIGH};
+
+public:
+    RDist() {
+#ifdef CASE_NORANDOM
+        const auto seed = 0;
+#else
+        const auto seed = std::random_device()();
+#endif
+        engine.seed(seed);
+    }
+
+    int operator()() const {
+        return dist(engine);
+    }
+};
+
+using RBool = RDist<0, 1>;
+
 } // CASE
 
 #endif // RAND

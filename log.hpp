@@ -1,6 +1,7 @@
 #ifndef CASE_LOG
 #define CASE_LOG
 
+#include <ctime>
 #include <chrono>
 #include <atomic>
 #include <thread>
@@ -16,30 +17,39 @@ class Log {
     std::thread thread;
     std::mutex mutex;
     std::stringstream stream;
-    std::atomic<bool> terminate{false};
+    std::atomic<bool> running{true};
 
 public:
     Log(const std::string & filename) {
         thread = std::thread{[this, filename]
         {
+            using namespace std::chrono;
+
             std::ofstream file{filename, std::ios::out};
             if (file.is_open() == false)
-                throw std::runtime_error{"unable to open file" + filename};
+                throw std::runtime_error{"unable to open \"" + filename + "\""};
 
-            while (true) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(200));
-                mutex.lock();
+            const auto time = system_clock::to_time_t(system_clock::now());
+            stream << "# " << std::ctime(&time);
+
+            while (running) {
+                std::this_thread::sleep_for(milliseconds(200));
+
+                if (stream.fail())
+                    throw std::runtime_error{"stream failbit"};
+
+                if (file.fail())
+                    throw std::runtime_error{"file failbit"};
+
+                std::lock_guard<std::mutex> lock{mutex};
                 file << stream.rdbuf();
-                mutex.unlock();
-                if (terminate)
-                    break;
             }
             file.close();
         }};
     }
 
     ~Log() {
-        terminate = true;
+        running = false;
         thread.join();
     }
 

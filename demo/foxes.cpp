@@ -27,7 +27,8 @@ struct UnitVector {
 };
 
 UnitVector random_direction() {
-    return { rng(-1, 1), rng(-1, 1) };
+    static CASE::RDist<-1, 1> dist;
+    return { dist(), dist() };
 }
 
 int foxes = 0;
@@ -62,11 +63,12 @@ public:
 };
 
 Agent::Agent(const Type _type) {
+    static CASE::RDist<1, 100> dist;
     if (_type == None) {
-        auto r = rng(0, 100);
+        auto r = dist();
         if (r > 99)
             type = Fox;
-        else if (r > 85)
+        else if (r > 90)
             type = Rabbit;
         else
             type = Grass;
@@ -117,7 +119,7 @@ void Agent::update() {
 
         else if (energy > 0.3 * max_energy) {
 
-            auto grass = neighbors(vec.x, vec.y).spawn(new Agent{Grass});
+            auto grass = neighbors(vec.x, vec.y).spawn(Agent{Grass});
             if (grass != nullptr) {
                 assert(grass->type == Grass);
                 assert(grass->z == 1);
@@ -128,12 +130,12 @@ void Agent::update() {
     }
     else if (type == Rabbit) {
         assert(z == 0);
-
+        static CASE::RDist<1, 20> dist_1_to_20;
         energy -= 6;
-        bool breed = rng(1, 20) < 2 && energy > 0.7 * max_energy;
+        bool breed = dist_1_to_20() < 2 && energy > 0.7 * max_energy;
 
         if (breed) {
-            auto rabbit = neighbors(vec.x, vec.y).spawn(new Agent{Rabbit});
+            auto rabbit = neighbors(vec.x, vec.y).spawn(Agent{Rabbit});
             if (rabbit != nullptr) {
                 assert(rabbit->type == Rabbit);
                 assert(rabbit->z == 0);
@@ -155,12 +157,12 @@ void Agent::update() {
 
     else { // type is Fox
         assert(z == 0);
-
+        static CASE::RDist<1, 100> dist_1_to_100{};
         energy -= 10;
-        const auto breed = rng(1, 100) < 5 && energy > 0.75 * max_energy;
+        const auto breed = dist_1_to_100() < 5 && energy > 0.75 * max_energy;
 
         if (breed) {
-            auto fox = neighbors(vec.x, vec.y).spawn(new Agent{Fox});
+            auto fox = neighbors(vec.x, vec.y).spawn(Agent{Fox});
             if (fox != nullptr) {
                 assert(fox->type == Fox);
                 assert(fox->z == 0);
@@ -224,7 +226,6 @@ struct Config {
     const sf::Color bgcolor{0,0,0};
 
     void init(Grid & grid, CASE::AgentManager<Agent> & manager) {
-
         grid.clear();
         manager.clear();
 
@@ -232,7 +233,7 @@ struct Config {
             const auto x = rng(0, columns - 1);
             const auto y = rng(0, rows - 1);
 
-            grid(x, y).spawn(new Agent{None});
+            grid(x, y).spawn(Agent{None});
         }
     }
 

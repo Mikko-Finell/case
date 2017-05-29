@@ -58,7 +58,6 @@ void Dynamic() {
     timer.start();
 
     while (running) {
-
         bool single_step = false;
         bool update_frame = false;
 
@@ -76,6 +75,7 @@ void Dynamic() {
             manager.update();
             config.postprocessing(grid);
         }
+
         graphics.clear(config.bgcolor);
         graphics.draw(grid.cells, grid.cell_count());
         graphics.display();
