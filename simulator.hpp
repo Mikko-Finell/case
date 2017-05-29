@@ -46,9 +46,9 @@ void Dynamic() {
     Grid<Cell> grid{config.columns, config.rows, manager};
     graphics::dynamic::SingleBuffer<Cell> graphics{window};
 
-    auto reset = [&config, &grid]()
+    auto reset = [&config, &grid, &manager]()
     {
-        config.init(grid);
+        config.init(grid, manager);
     };
     reset();
 

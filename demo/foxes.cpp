@@ -7,9 +7,9 @@
 #include "../cell.hpp"
 #include "../simulator.hpp"
 
-#define COLUMNS 512
-#define ROWS 128
-#define CELL_SIZE 3
+#define COLUMNS 256
+#define ROWS 256
+#define CELL_SIZE 2
 
 int rng(const int low, const int high) {
     static CASE::Random random;
