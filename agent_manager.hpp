@@ -3,6 +3,9 @@
 
 #include <cstring>
 #include <cassert>
+#include <vector>
+
+#include "timer.hpp"
 
 namespace CASE {
 
@@ -10,53 +13,77 @@ template <class Agent>
 class AgentManager {
     Agent * agents = nullptr;
     const int max_agents;
+    std::vector<int> inactive;
+
+    /*Agent * find_inactive_agent() {
+        if (inactive.empty()) {
+            for (auto i = max_agents - 1; i >= 0; --i) {
+                if (agents[i].active() == false)
+                    inactive.push_back(i);
+            }
+            if (inactive.empty())
+                return nullptr;
+        }
+        const auto i = inactive.back();
+        inactive.pop_back();
+        return &agents[i];
+    }*/
 
     Agent * _spawn(Agent ** _p) {
         Agent *& pointer = *_p;
         
         assert(pointer < agents || pointer > (agents + max_agents));
-/*#ifdef NDEBUG
-        if (pointer < agents || pointer > (agents + max_agents))
-            return nullptr;
-#endif*/
-        for (auto i = 0; i < max_agents; i++) {
-            if (agents[i].active() == false) {
 
-                if (agents[i].cell != nullptr)
-                    agents[i].cell->extract(agents[i].z);
+        if (inactive.empty()) {
+            for (auto i = max_agents - 1; i >= 0; --i) {
+                if (agents[i].active() == false)
+                    inactive.push_back(i);
+            }
 
-                std::memmove(&agents[i], pointer, sizeof(Agent));
+            if (inactive.empty()) {
                 delete pointer;
-                pointer = &agents[i];
-                pointer->activate();
+                pointer = nullptr;
                 return pointer;
             }
         }
+        const auto i = inactive.back();
+        inactive.pop_back();
+        
+        if (agents[i].cell != nullptr)
+            agents[i].cell->extract(agents[i].z);
+
+        agents[i] = *pointer;
         delete pointer;
-        pointer = nullptr;
+        pointer = &agents[i];
+        pointer->activate();
         return pointer;
     }
 
     Agent * _spawn(Agent && agent) {
-        Agent * pointer = nullptr;
-        for (auto i = 0; i < max_agents; i++) {
-            if (agents[i].active() == false) {
+        if (inactive.empty()) {
 
-                if (agents[i].cell != nullptr)
-                    agents[i].cell->extract(agents[i].z);
-
-                agents[i] = agent;
-                agents[i].activate();
-                pointer = &agents[i];
-
-                break;
+            for (auto i = max_agents - 1; i >= 0; --i) {
+                if (agents[i].active() == false)
+                    inactive.push_back(i);
             }
+
+            if (inactive.empty())
+                return nullptr;
         }
-        return pointer;
+        const auto i = inactive.back();
+        inactive.pop_back();
+        
+        if (agents[i].cell != nullptr)
+            agents[i].cell->extract(agents[i].z);
+
+        agents[i] = agent;
+        agents[i].activate();
+        return &agents[i];
     }
 
 public:
     void update() {
+        inactive.clear();
         for (auto i = 0; i < max_agents; i++) {
             auto & agent = agents[i];
             if (agent.active())
@@ -65,6 +92,8 @@ public:
             if (agent.active() == false) {
                 if (agent.cell != nullptr)
                     agent.cell->extract(agent.z);
+
+                inactive.push_back(i);
             }
         }
     }
@@ -103,6 +132,8 @@ public:
         if (agents != nullptr)
             delete [] agents;
         agents = new Agent[max_agents];
+        inactive.resize(max_agents);
+        std::iota(inactive.rbegin(), inactive.rend(), 0);
     }
 };
 
