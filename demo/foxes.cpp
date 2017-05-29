@@ -7,29 +7,9 @@
 #include "../cell.hpp"
 #include "../simulator.hpp"
 
-#define COLUMNS 256
-#define ROWS 256
+#define COLUMNS 344
+#define ROWS 344
 #define CELL_SIZE 2
-
-int rng(const int low, const int high) {
-    static CASE::Random random;
-    return random(low, high);
-}
-
-template<int low, int high>
-auto range() {
-    static CASE::Random random;
-    return random.range<low, high>();
-}
-
-struct UnitVector {
-    const int x; const int y;
-};
-
-UnitVector random_direction() {
-    static CASE::RDist<-1, 1> dist;
-    return { dist(), dist() };
-}
 
 int foxes = 0;
 int rabbits = 0;
@@ -75,73 +55,46 @@ Agent::Agent(const Type _type) {
     }
     else
         this->type = _type;
-
-    if (type == Fox) {
-        foxes++;
-        energy = 200;
-        z = 0;
+    if (type == Grass) {
+        z = 1;
+        energy = 50;
     }
     else if (type == Rabbit) {
-        rabbits++;
-        energy = 255;
         z = 0;
+        energy = 255;
     }
     else {
-        grasses++;
-        energy = 50;
-        z = 1;
+        z = 0;
+        energy = 200;
     }
 }
 
 void Agent::update() {
-    if (!alive) {
-        return;
-    }
+    if (energy <= 0)
+        return deactivate();
 
-    if (energy <= 0) {
-        deactivate();
-        //cell->extract(this->z);
-        return;
-    }
-
-    const auto vec = random_direction();
     auto neighbors = cell->neighbors();
 
+    static CASE::RDist<-1, 1> uv;
+    static CASE::RDist<1, 100> rand_percent{};
+
     if (type == Grass) {
-        assert(z == 1);
-
-        auto grass_neighbor = neighbors(vec.x, vec.y).getlayer(1);
-        if (grass_neighbor != nullptr) {
-            grass_neighbor->energy += 2;
-            if (grass_neighbor->energy > max_energy)
-                grass_neighbor->energy = max_energy;
+        auto grass = neighbors(uv(), uv()).getlayer(1);
+        if (grass != nullptr) {
+            grass->energy += 2;
+            if (grass->energy > max_energy)
+                grass->energy = max_energy;
         }
-
-        else if (energy > 0.3 * max_energy) {
-
-            auto grass = neighbors(vec.x, vec.y).spawn(Agent{Grass});
-            if (grass != nullptr) {
-                assert(grass->type == Grass);
-                assert(grass->z == 1);
-                assert(grass->cell == &neighbors(vec.x, vec.y));
-                assert(neighbors(vec.x, vec.y).getlayer(z) == grass);
-            }
-        }
+        else if (energy > 0.3 * max_energy)
+            neighbors(uv(), uv()).spawn(Agent{Grass});
     }
     else if (type == Rabbit) {
-        assert(z == 0);
-        static CASE::RDist<1, 20> dist_1_to_20;
         energy -= 6;
-        bool breed = dist_1_to_20() < 2 && energy > 0.7 * max_energy;
 
+        bool breed = rand_percent() < 10 && energy > 0.7 * max_energy;
         if (breed) {
-            auto rabbit = neighbors(vec.x, vec.y).spawn(Agent{Rabbit});
+            auto rabbit = neighbors(uv(), uv()).spawn(Agent{Rabbit});
             if (rabbit != nullptr) {
-                assert(rabbit->type == Rabbit);
-                assert(rabbit->z == 0);
-                assert(rabbit->cell == &neighbors(vec.x, vec.y));
-                assert(neighbors(vec.x, vec.y).getlayer(z) == rabbit);
-
                 rabbit->energy = energy;
                 energy -= 20;
             }
@@ -151,26 +104,15 @@ void Agent::update() {
             energy += grass->energy;
             grass->energy -= 50;
         }
-        const auto dir = random_direction();
-        neighbors(dir.x, dir.y).insert(this);
+        neighbors(uv(), uv()).insert(this);
     }
-
     else { // type is Fox
-        assert(z == 0);
-        static CASE::RDist<1, 100> dist_1_to_100{};
         energy -= 10;
-        const auto breed = dist_1_to_100() < 5 && energy > 0.75 * max_energy;
-
+        
+        const auto breed = rand_percent() < 5 && energy > 0.75 * max_energy;
         if (breed) {
-            auto fox = neighbors(vec.x, vec.y).spawn(Agent{Fox});
-            if (fox != nullptr) {
-                assert(fox->type == Fox);
-                assert(fox->z == 0);
-                assert(fox->cell == &neighbors(vec.x, vec.y));
-                assert(neighbors(vec.x, vec.y).getlayer(z) == fox);
-
+            if (neighbors(uv(), uv()).spawn(Agent{Fox}) != nullptr)
                 energy -= 10;
-            }
         }
         for (Cell * cellptr : neighbors.cells()) { 
             auto ptr = cellptr->getlayer(0);
@@ -184,8 +126,7 @@ void Agent::update() {
                 break;
             }
         }
-        const auto dir = random_direction();
-        neighbors(dir.x, dir.y).insert(this);
+        neighbors(uv(), uv()).insert(this);
     }
 }
 
@@ -229,12 +170,11 @@ struct Config {
         grid.clear();
         manager.clear();
 
-        for (auto i = 0; i < subset/2; i++){
-            const auto x = rng(0, columns - 1);
-            const auto y = rng(0, rows - 1);
+        CASE::RDist<0, columns - 1> x;
+        CASE::RDist<0, rows - 1> y;
 
-            grid(x, y).spawn(Agent{None});
-        }
+        for (auto i = 0; i < subset/2; i++)
+            grid(x(), y()).spawn(Agent{None});
     }
 
     void postprocessing(Grid & /*grid*/) {
