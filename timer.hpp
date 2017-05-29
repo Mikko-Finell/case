@@ -19,6 +19,10 @@ public:
         start_time = clock::now();
     }
 
+    Timer() {
+        start();
+    }
+
     inline double reset() {
         _duration = dt();
         start_time = clock::now();
