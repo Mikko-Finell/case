@@ -98,24 +98,27 @@ public:
 template <class T>
 class Graphics {
 
-    enum class Access { Open, Closed };
-    Access access = Access::Closed;
-    std::list<GraphicsJob<T>> jobs;
-
-    sf::RenderWindow * window = nullptr;
+    enum Access { Open, Closed };
+    Access graphics_access = Access::Closed;
+    std::list<GraphicsJob<T>> graphics_jobs;
     std::vector<sf::Vertex> vertices[2];
     ArrayBuffer<std::vector<sf::Vertex>> vs{&vertices[0], &vertices[1]};
+    sf::RenderWindow * window = nullptr;
 
 public:
     Graphics(sf::RenderWindow & w) : window(&w)
     {
-        const auto threads = std::thread::hardware_concurrency() - 1;
-        for (std::size_t n = 0; n < threads; n++) {
-            jobs.emplace_back(n, threads);
-            auto & job = jobs.back();
+        const auto gthreads = 2;
+        for (std::size_t n = 0; n < gthreads; n++) {
+            graphics_jobs.emplace_back(n, gthreads);
+            auto & job = graphics_jobs.back();
             job.thread = std::thread{[&job]{ job.run(); }};
         }
-        wait();
+        if (graphics_access == Open) {
+            for (auto & job : graphics_jobs)
+                job.wait();
+            graphics_access = Open;
+        }
     }
 
     ~Graphics() {
@@ -123,13 +126,6 @@ public:
     }
 
     void wait() {
-        if (access == Access::Open)
-            return;
-
-        for (auto & job : jobs)
-            job.wait();
-
-        access = Access::Open;
     }
 
     Graphics & draw(const T * objects, const int size) {
@@ -137,15 +133,21 @@ public:
         assert(objects != nullptr);
         assert(size >= 0);
 
-        wait();
+        if (graphics_access == Open) {
+            for (auto & job : graphics_jobs)
+                job.wait();
+            graphics_access = Open;
+        }
 
         vs.flip(); // swap buffers
         vs.next()->resize(size * 4);
 
-        for (auto & job : this->jobs) {
+        for (auto & job : graphics_jobs) {
             job.upload(objects, vs.next()->data(), size);
             job.launch();
         }
+
+        graphics_access = Closed;
 
         return *this;
     }
@@ -161,13 +163,13 @@ public:
     }
 
     void terminate() {
-        for (auto & job : this->jobs) {
+        for (auto & job : graphics_jobs) {
             job.terminate();
             job.upload(nullptr, nullptr, 0);
             job.launch();
             job.thread.join();
         }
-        this->jobs.clear();
+        graphics_jobs.clear();
     }
 };
 
