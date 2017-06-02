@@ -43,27 +43,6 @@ class Job {
     bool flag_launch        = false;
     bool flag_done          = false;
 
-    void execute() {
-        for (auto i = nth; i < array_size; i += n_threads) {
-            indices.push_back(i);
-            next[i] = current[i];
-        }
-        if (subset < array_size) {
-            random.shuffle(indices);
-
-            for (auto i = nth; i < subset; i += n_threads) {
-                const auto index = indices.back();
-                indices.pop_back();
-                current[index].update(next[index]);
-            }
-        }
-        else {
-            for (auto i = nth; i < array_size; i += n_threads)
-                current[i].update(next[i]);
-        }
-        indices.clear();
-    }
-
 public:
     std::thread thread;
 
@@ -111,85 +90,26 @@ public:
             if (flag_terminate)
                 return;
 
-            execute();
+            // execute
+            for (auto i = nth; i < array_size; i += n_threads) {
+                indices.push_back(i);
+                next[i] = current[i];
+            }
+            if (subset < array_size) {
+                random.shuffle(indices);
+
+                for (auto i = nth; i < subset; i += n_threads) {
+                    const auto index = indices.back();
+                    indices.pop_back();
+                    current[index].update(next[index]);
+                }
+            }
+            else {
+                for (auto i = nth; i < array_size; i += n_threads)
+                    current[i].update(next[i]);
+            }
+            indices.clear();
         }
-    }
-};
-
-
-
-
-template<class T>
-class Update {
-    enum class Access { Open, Closed };
-    Access access = Access::Closed;
-    std::list<Job<T>> jobs;
-
-public:
-    Update() {
-        const auto threads = std::thread::hardware_concurrency() - 1;
-        for (std::size_t n = 0; n < threads; n++) {
-            jobs.emplace_back(n, threads);
-            auto & job = jobs.back();
-            job.thread = std::thread{[&job]{ job.run(); }};
-        }
-        wait();
-    }
-
-    ~Update() {
-        terminate();
-    }
-
-    void wait() {
-        if (access == Access::Open)
-            return;
-
-        void wait() {
-            for (auto & job : jobs)
-                job.wait();
-        }
-
-        access = Access::Open;
-    }
-
-    Update & launch(T * current, T * next, const int size, const int subset) {
-        wait();
-
-        assert(access == Access::Open);
-        assert(current != nullptr);
-        assert(next != nullptr);
-        assert(current != next);
-        assert(size >= 0);
-        assert(subset >= 0);
-
-        if (current < next)
-            assert(current + size <= next);
-        else
-            assert(current >= next + size);
-
-        for (auto & job : this->jobs) {
-            job.upload(current, next, size, subset);
-            job.launch();
-        }
-
-        access = Access::Closed;
-        return *this;
-    }
-
-    Update & launch(T * current, T * next, const int size) {
-        return launch(current, next, size, size);
-    }
-
-    void terminate() {
-        wait();
-        for (auto & job : this->jobs) {
-            job.terminate();
-            job.upload(nullptr, nullptr, 0, 0);
-            job.launch();
-        }
-        for (auto & job : this->jobs)
-            job.thread.join();
-        this->jobs.clear();
     }
 };
 
@@ -212,13 +132,35 @@ void Static() {
     window.setKeyRepeatEnabled(false);
     window.setVerticalSyncEnabled(true);
 
-    Update<Agent> update;
-    graphics::Parallel<Agent, 4> graphics{window};
+    // Update variables
+    enum Access { Open, Closed };
+    std::list<Job<Agent>> jobs;
 
-    auto reset = [&update, &config, &world]() {
-        update.wait();
+    // initialize update threads
+    const auto threads = std::thread::hardware_concurrency() - 1;
+    for (std::size_t n = 0; n < threads; n++) {
+        jobs.emplace_back(n, threads);
+        auto & job = jobs.back();
+        job.thread = std::thread{[&job]{ job.run(); }};
+    }
+    for (auto & job : jobs)
+        job.wait();
+    Access access = Open;
+
+    auto wait = [&access, &jobs]() {
+       if (access != Open) {
+            for (auto & job : jobs)
+                job.wait();
+            access = Open;
+        }
+    };
+
+    auto reset = [&]() {
+        wait();
         config.init(world.next());
     };
+
+    graphics::Parallel<Agent, 4> graphics{window};
     
     bool pause = false;
     bool running = true;
@@ -244,16 +186,33 @@ void Static() {
         }
         if (update_frame) {
             world.flip();
-            update.wait();
+
+            // Wait for threads to get ready
+            wait();
             config.preprocessing();
-            update.launch(world.current(), world.next(), size, subset);
+
+            for (auto & job : jobs) {
+                job.upload(world.current(), world.next(), size, subset);
+                job.launch();
+            }
+            access = Closed;
         }
         graphics.draw(world.current(), size);
         graphics.clear(config.bgcolor);
         graphics.display();
     }
 
-    update.terminate();
+    // Terminate jobs
+    wait();
+    for (auto & job : jobs) {
+        job.terminate();
+        job.upload(nullptr, nullptr, 0, 0);
+        job.launch();
+    }
+    for (auto & job : jobs)
+        job.thread.join();
+    jobs.clear();
+
     graphics.terminate();
     delete [] agents;
 }

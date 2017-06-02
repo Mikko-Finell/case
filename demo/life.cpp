@@ -2,7 +2,7 @@
 #include "../neighbors.hpp"
 #include "../quad.hpp"
 #include "../grid.hpp"
-#include "../simulator.hpp"
+#include "../static_sim.hpp"
 
 #define COLUMNS 344
 #define ROWS 344
@@ -102,5 +102,5 @@ struct GameOfLife {
 };
 
 int main() {
-    CASE::simulator::Static<GameOfLife>();
+    CASE::Static<GameOfLife>();
 }
