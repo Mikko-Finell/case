@@ -4,9 +4,9 @@
 #include "../grid.hpp"
 #include "../simulator.hpp"
 
-#define COLUMNS 512
-#define ROWS 512
-#define CELL_SIZE 2
+#define COLUMNS 344
+#define ROWS 344
+#define CELL_SIZE 3
 
 class Life {
     int x, y, age = 255;
@@ -85,18 +85,20 @@ struct GameOfLife {
     const sf::Color bgcolor = sf::Color::Black;
 
     void init(Life * agents) {
-        CASE::Random rng;
+        CASE::RDist<0, 100> rand;
         int index = 0;
         for (auto y = 0; y < ROWS; y++) {
             for (auto x = 0; x < COLUMNS; x++) {
                 auto & agent = agents[CASE::index(x, y, COLUMNS)];
                 agent = Life{x, y};
-                if (rng(1, 100) < 25)
+                if (rand() < 25)
                     agent.live = true;
                 agent.index = index++;
             }
         }
     }
+
+    void preprocessing() {}
 };
 
 int main() {

@@ -28,8 +28,7 @@ void Dynamic() {
     assert(std::is_trivially_copyable<Agent>::value == true);
     using Cell = typename Config::Cell;
 
-    //constexpr auto subset     = config.subset;
-    auto framerate            = config.framerate;
+    auto framerate = config.framerate;
 
     sf::RenderWindow window;
     const auto win_w = config.columns * config.cell_size;
