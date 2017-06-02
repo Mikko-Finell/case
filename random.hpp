@@ -1,67 +1,83 @@
 #ifndef CASE_RAND
 #define CASE_RAND
 
-#include <array>
 #include <algorithm>
 #include <random>
 
 namespace CASE {
 
+#ifdef CASE_RAND_BEST
+using Engine = std::mt19937;
+
+#else
+using Engine = std::minstd_rand;
+//using Engine = std::ranlux24;
+#endif
+
+auto seed() {
+#ifdef CASE_DETERMINISTIC
+    return 0;
+#else
+    std::random_device rd;
+    return rd();
+#endif
+}
+
+template <class DistributionType>
 class Random {
-    mutable std::mt19937 engine;
+    mutable Engine engine{seed()};
 
 public:
-
-    Random(const int seed) {
-        engine.seed(seed);
-    }
-
-    Random() {
-#ifdef CASE_NORANDOM
-        const auto seed = 0;
-#else
-        const auto seed = std::random_device()();
-#endif
-        engine.seed(seed);
-    }
-
-    void seed(const int n) {
-        engine.seed(n);
-    }
-
-    int operator()(const int low, const int high) const {
-        std::uniform_int_distribution<int> dist(low, high);
+    int operator()(const int a, const int b) const {
+        DistributionType dist(a, b);
         return dist(engine);
     }
 
-    bool boolean() const {
-        return this->operator()(0, 1);
+    template <class Container>
+    Container & shuffle(Container & container) {
+        std::shuffle(std::begin(container), std::end(container), engine);
+        return container;
     }
 
-    template<int low, int high>
-    std::array<int, high - low> range() {
-        std::array<int, high - low> array;
-        std::iota(array.begin(), array.end(), low);
-        std::shuffle(array.begin(), array.end(), engine);
-        return array;
+    template <class Container>
+    auto shuffled(Container container) {
+        std::shuffle(std::begin(container), std::end(container), engine);
+        return container;
     }
 };
 
+using Uniform = Random<std::uniform_int_distribution<int>>;
+using Gaussian = Random<std::normal_distribution<>>;
+using Cauchy = Random<std::cauchy_distribution<>>;
+
 template<int LOW, int HIGH>
 class RDist {
-    mutable std::mt19937 engine;
+    mutable Engine engine{seed()};
     mutable std::uniform_int_distribution<int> dist{LOW, HIGH};
 
 public:
-    RDist() {
-#ifdef CASE_NORANDOM
-        const auto seed = 0;
-#else
-        const auto seed = std::random_device()();
-#endif
-        engine.seed(seed);
+    int operator()() const {
+        return dist(engine);
     }
+};
 
+template<int A, int B>
+class RGaus {
+    mutable Engine engine{seed()};
+    mutable std::normal_distribution<> dist{A, B};
+
+public:
+    int operator()() const {
+        return dist(engine);
+    }
+};
+
+template<int A, int B>
+class RCauc {
+    mutable Engine engine{seed()};
+    mutable std::cauchy_distribution<> dist{A, B};
+
+public:
     int operator()() const {
         return dist(engine);
     }
