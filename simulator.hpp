@@ -86,6 +86,7 @@ template<class Config>
 void Static() {
     Config config;
     using Agent = typename Config::Agent;
+    assert(std::is_trivially_copyable<Agent>::value == true);
 
     const auto size      = config.columns * config.rows;
     const auto subset    = config.subset;
@@ -103,11 +104,9 @@ void Static() {
     update::Static<Agent> update;
     graphics::Parallel<Agent, 4> graphics{window};
 
-    auto reset = [&update, &config, &world](bool & pause, bool & single_step) {
+    auto reset = [&update, &config, &world]() {
         update.wait();
         config.init(world.next());
-        if (pause)
-            single_step = true;
     };
     
     bool pause = false;
@@ -134,6 +133,8 @@ void Static() {
         }
         if (update_frame) {
             world.flip();
+            update.wait();
+            config.preprocessing();
             update.launch(world.current(), world.next(), size, subset);
         }
         graphics.draw(world.current(), size);
