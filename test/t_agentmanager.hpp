@@ -74,7 +74,7 @@ bool cellspawn() {
 }
 
 bool updateextract() {
-    Random rng;
+    Uniform rng;
     const auto popsize = rng(1, 512);
     AgentManager<Agent> man{popsize};
     auto cells = new ZCell<Agent, 2>[popsize];
@@ -85,7 +85,7 @@ bool updateextract() {
     
     assert(man.popcount() == popsize);
     for (auto i = 0; i < popsize; i++) {
-        if (cells[i][0] != nullptr && rng.boolean())
+        if (cells[i][0] != nullptr && rng(0, 1))
             cells[i][0]->deactivate();
     }
     man.update();
