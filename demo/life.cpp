@@ -4,9 +4,9 @@
 #include "../grid.hpp"
 #include "../simulator.hpp"
 
-#define COLUMNS 256
-#define ROWS 256
-#define CELL_SIZE 3
+#define COLUMNS 512
+#define ROWS 512
+#define CELL_SIZE 2
 
 class Life {
     int x, y, age = 255;
