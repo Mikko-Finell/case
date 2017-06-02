@@ -24,6 +24,184 @@
 namespace CASE {
 
 template <class T>
+class GraphicsJob {
+    const int nth;
+    const int n_threads;
+
+    std::condition_variable cv_done;
+    std::condition_variable cv_launch;
+    std::mutex              mutex_done;
+    std::mutex              mutex_launch;
+    bool flag_terminate     = false;
+    bool flag_launch        = false;
+    bool flag_done          = false;
+
+    const T * objects = nullptr;
+    sf::Vertex * vertices = nullptr;
+    volatile int array_size = 0;
+
+public:
+    std::thread thread;
+
+    GraphicsJob(const int n, const int thread_count)
+        : nth(n), n_threads(thread_count)
+    {}
+
+    void wait() {
+        std::unique_lock<std::mutex> lock_done{mutex_done};
+        cv_done.wait(lock_done, [this]{ return flag_done; });
+        flag_done = false;
+    }
+
+    void launch() {
+        {
+            std::lock_guard<std::mutex> lock_launch{mutex_launch};
+            flag_launch = true;
+        }
+        cv_launch.notify_one();
+    }
+
+    void terminate() {
+        flag_terminate = true;
+    }
+
+    void run() {
+        while (true) {
+            {
+                std::unique_lock<std::mutex> lock_launch{mutex_launch};
+                flag_launch = false;
+                {
+                    std::lock_guard<std::mutex> lock_done{mutex_done};
+                    flag_done = true;
+                }
+                cv_done.notify_one();
+                cv_launch.wait(lock_launch, [this]{ return flag_launch; });
+            }
+            if (flag_terminate)
+                return;
+
+            constexpr int VS_PER_OBJ = 4;
+            for (auto i = nth; i < array_size; i += n_threads)
+                objects[i].draw(vertices + i * VS_PER_OBJ);
+        }
+    }
+
+    void upload(const T * objs, sf::Vertex * vs, const int count) {
+        objects = objs;
+        vertices = vs;
+        array_size = count;
+    }
+};
+
+
+
+template<class T>
+class Parallel {
+protected:
+    std::list<T> jobs;
+
+public:
+    double job_duration() const {
+        double total_duration = 0.0;
+        for (const auto & job : jobs)
+            total_duration += job.duration();
+        return total_duration;
+    }
+
+    double actual_duration() const {
+        return job_duration() / jobs.size();
+    }
+
+    virtual void init() {
+        const auto threads = std::thread::hardware_concurrency() - 1;
+        for (std::size_t n = 0; n < threads; n++) {
+            jobs.emplace_back(n, threads);
+            auto & job = jobs.back();
+            job.thread = std::thread{[&job]{ job.run(); }};
+        }
+    }
+
+    void wait() {
+        for (auto & job : jobs)
+            job.wait();
+    }
+};
+
+
+template<class T>
+class Graphics : private Parallel<GraphicsJob<T>> {
+
+    enum class Access { Open, Closed };
+    Access access = Access::Closed;
+
+    sf::RenderWindow * window = nullptr;
+    std::vector<sf::Vertex> vertices[2];
+    ArrayBuffer<std::vector<sf::Vertex>> vs{&vertices[0], &vertices[1]};
+
+public:
+    Graphics(sf::RenderWindow & w) : window(&w)
+    {
+        Parallel<GraphicsJob<T>>::init();
+        wait();
+    }
+
+    ~Graphics() {
+        terminate();
+    }
+
+    void wait() {
+        if (access == Access::Open)
+            return;
+
+        Parallel<GraphicsJob<T>>::wait();
+
+        access = Access::Open;
+    }
+
+    Graphics & draw(const T * objects, const int size) {
+        assert(window != nullptr);
+        assert(objects != nullptr);
+        assert(size >= 0);
+
+        wait();
+
+        vs.flip(); // swap buffers
+        vs.next()->resize(size * 4);
+
+        for (auto & job : this->jobs) {
+            job.upload(objects, vs.next()->data(), size);
+            job.launch();
+        }
+
+        return *this;
+    }
+
+    void clear(const sf::Color color = sf::Color::White) {
+        window->clear(color);
+    }
+
+    void display() {
+        auto & current = *vs.current();
+        window->draw(current.data(), current.size(), sf::Quads);
+        window->display();
+    }
+
+    void terminate() {
+        for (auto & job : this->jobs) {
+            job.terminate();
+            job.upload(nullptr, nullptr, 0);
+            job.launch();
+            job.thread.join();
+        }
+        this->jobs.clear();
+    }
+};
+
+
+
+
+
+template <class T>
 class Job {
     Uniform random;
     std::vector<int> indices;
@@ -160,7 +338,7 @@ void Static() {
         config.init(world.next());
     };
 
-    graphics::Parallel<Agent, 4> graphics{window};
+    Graphics<Agent> graphics{window};
     
     bool pause = false;
     bool running = true;
