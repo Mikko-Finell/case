@@ -11,70 +11,56 @@ namespace CASE {
 
 template <class Agent>
 class AgentManager {
+    Uniform random;
     Agent * agents = nullptr;
     const int max_agents;
     std::vector<int> inactive;
+    std::vector<int> indices;
 
-    /*Agent * find_inactive_agent() {
+    void refresh_inactive() {
         if (inactive.empty()) {
-            for (auto i = max_agents - 1; i >= 0; --i) {
-                if (agents[i].active() == false)
+            for (auto i = 0; i < max_agents; i++) {
+                auto & agent = agents[i];
+                if (agent.active() == false) {
                     inactive.push_back(i);
+                    if (agent.cell != nullptr)
+                        agent.cell->extract(agent.z);
+                }
             }
-            if (inactive.empty())
-                return nullptr;
         }
-        const auto i = inactive.back();
-        inactive.pop_back();
-        return &agents[i];
-    }*/
+    }
 
     Agent * _spawn(Agent ** _p) {
         Agent *& pointer = *_p;
         
         assert(pointer < agents || pointer > (agents + max_agents));
 
-        if (inactive.empty()) {
-            for (auto i = max_agents - 1; i >= 0; --i) {
-                if (agents[i].active() == false)
-                    inactive.push_back(i);
-            }
+        refresh_inactive();
 
-            if (inactive.empty()) {
-                delete pointer;
-                pointer = nullptr;
-                return pointer;
-            }
+        if (inactive.empty()) {
+            delete pointer;
+            pointer = nullptr;
+            return pointer;
         }
+
         const auto i = inactive.back();
         inactive.pop_back();
-        
-        if (agents[i].cell != nullptr)
-            agents[i].cell->extract(agents[i].z);
 
         agents[i] = *pointer;
+        agents[i].activate();
         delete pointer;
         pointer = &agents[i];
-        pointer->activate();
         return pointer;
     }
 
     Agent * _spawn(Agent && agent) {
-        if (inactive.empty()) {
+        refresh_inactive();
 
-            for (auto i = max_agents - 1; i >= 0; --i) {
-                if (agents[i].active() == false)
-                    inactive.push_back(i);
-            }
+        if (inactive.empty())
+            return nullptr;
 
-            if (inactive.empty())
-                return nullptr;
-        }
         const auto i = inactive.back();
         inactive.pop_back();
-        
-        if (agents[i].cell != nullptr)
-            agents[i].cell->extract(agents[i].z);
 
         agents[i] = agent;
         agents[i].activate();
@@ -83,8 +69,7 @@ class AgentManager {
 
 public:
     void update() {
-        inactive.clear();
-        for (auto i = 0; i < max_agents; i++) {
+        for (const auto i : random.shuffle(indices)) {
             auto & agent = agents[i];
             if (agent.active())
                 agent.update();
@@ -92,14 +77,14 @@ public:
             if (agent.active() == false) {
                 if (agent.cell != nullptr)
                     agent.cell->extract(agent.z);
-
-                inactive.push_back(i);
             }
         }
     }
 
     AgentManager(const int max) : max_agents(max)
     {
+        indices.resize(max_agents);
+        std::iota(indices.begin(), indices.end(), 0);
         clear();
     }
 
