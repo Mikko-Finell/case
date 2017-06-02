@@ -3,19 +3,18 @@
 
 #include <vector>
 #include <cassert>
-#include <random>
 #include <algorithm>
 
 #include "job.hpp"
 #include "map.hpp"
+#include "random.hpp"
 
 namespace CASE {
 namespace update {
 
 template<class T>
 class Job : public job::Base {
-    std::random_device rd;
-    std::mt19937 rng{rd()};
+    Uniform random;
     std::vector<int> indices;
 
     void execute() override {
@@ -24,15 +23,13 @@ class Job : public job::Base {
             next[i] = current[i];
         }
         if (subset < array_size) {
-            std::shuffle(indices.begin(), indices.end(), rng);
+            random.shuffle(indices);
 
             for (auto i = nth; i < subset; i += n_threads) {
                 const auto index = indices.back();
                 indices.pop_back();
                 current[index].update(next[index]);
             }
-            for (const auto i : indices)
-                next[i] = current[i];
         }
         else {
             for (auto i = nth; i < array_size; i += n_threads)
@@ -49,7 +46,8 @@ class Job : public job::Base {
 public:
     Job(const int nth, const std::size_t n_threads)
         : job::Base(nth, n_threads)
-    {}
+    {
+    }
 
     void upload(T * first, T * second, const int count, const int ss) {
         current = first;
@@ -85,8 +83,8 @@ public:
 
     Static & launch(T * current, T * next, const int size, const int subset) {
         wait();
+
         assert(access == Access::Open);
-        
         assert(current != nullptr);
         assert(next != nullptr);
         assert(current != next);
@@ -97,9 +95,6 @@ public:
             assert(current + size <= next);
         else
             assert(current >= next + size);
-
-        // TODO check whether memmove is faster than current mechanism
-        //std::memmove(next, current, size); 
 
         for (auto & job : this->jobs) {
             job.upload(current, next, size, subset);
