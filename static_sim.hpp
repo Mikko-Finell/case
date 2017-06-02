@@ -117,48 +117,22 @@ public:
 };
 
 
+
+
 template<class T>
-class Parallel {
-protected:
+class Update {
+    enum class Access { Open, Closed };
+    Access access = Access::Closed;
     std::list<Job<T>> jobs;
 
 public:
-    double job_duration() const {
-        double total_duration = 0.0;
-        for (const auto & job : jobs)
-            total_duration += job.duration();
-        return total_duration;
-    }
-
-    double actual_duration() const {
-        return job_duration() / jobs.size();
-    }
-
-    virtual void init() {
+    Update() {
         const auto threads = std::thread::hardware_concurrency() - 1;
         for (std::size_t n = 0; n < threads; n++) {
             jobs.emplace_back(n, threads);
             auto & job = jobs.back();
             job.thread = std::thread{[&job]{ job.run(); }};
         }
-    }
-
-    void wait() {
-        for (auto & job : jobs)
-            job.wait();
-    }
-};
-
-
-
-template<class T>
-class Update : private map::Parallel<T> {
-    enum class Access { Open, Closed };
-    Access access = Access::Closed;
-
-public:
-    Update() {
-        map::Parallel<Job<T>>::init();
         wait();
     }
 
@@ -170,7 +144,10 @@ public:
         if (access == Access::Open)
             return;
 
-        map::Parallel<Job<T>>::wait();
+        void wait() {
+            for (auto & job : jobs)
+                job.wait();
+        }
 
         access = Access::Open;
     }
