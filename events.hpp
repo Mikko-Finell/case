@@ -8,7 +8,8 @@ namespace CASE {
 inline 
 void eventhandling(sf::RenderWindow & window, bool & running, bool & pause,
                    bool & single_step, double & framerate,
-                   const std::function<void()> & reset)
+                   const std::function<void()> & reset,
+                   const std::function<void(const int)> & fast_forward)
 {
     sf::Event event;
     while (window.pollEvent(event)) {
@@ -56,6 +57,30 @@ void eventhandling(sf::RenderWindow & window, bool & running, bool & pause,
                         pause = false;
                     else
                         framerate -= 5.0;
+                    continue;
+
+                case sf::Keyboard::Num1:
+                    fast_forward(1);
+                    continue;
+
+                case sf::Keyboard::Num2:
+                    fast_forward(2);
+                    continue;
+
+                case sf::Keyboard::Num3:
+                    fast_forward(3);
+                    continue;
+
+                case sf::Keyboard::Num4:
+                    fast_forward(4);
+                    continue;
+
+                case sf::Keyboard::Num5:
+                    fast_forward(5);
+                    continue;
+
+                case sf::Keyboard::Num6:
+                    fast_forward(6);
                     continue;
 
                 default:
