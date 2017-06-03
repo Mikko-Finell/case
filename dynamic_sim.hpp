@@ -46,6 +46,13 @@ void Dynamic() {
     };
     reset();
 
+    auto fast_forward = [&](const auto factor) {
+        const auto frames = std::pow(10, factor);
+        std::cout << "Forwarding " << frames << " frames" << std::endl;
+        for (auto i = 0; i < frames; i++) {
+        }
+    };
+
     bool pause = false;
     bool running = true;
     Timer timer;
@@ -55,7 +62,8 @@ void Dynamic() {
         bool single_step = false;
         bool update_frame = false;
 
-        eventhandling(window, running, pause, single_step, framerate, reset);
+        eventhandling(window, running, pause, single_step, framerate,
+                      reset, fast_forward);
 
         if (pause) {
             if (single_step)
