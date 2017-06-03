@@ -4,9 +4,9 @@
 #include "../grid.hpp"
 #include "../static_sim.hpp"
 
-#define COLUMNS 344
-#define ROWS 344
-#define CELL_SIZE 3
+#define COLUMNS 700
+#define ROWS 450
+#define CELL_SIZE 2
 
 class Life {
     int x, y, age = 255;
@@ -53,14 +53,13 @@ public:
     }
 
     void draw(sf::Vertex * vs) const {
-        /*
         if (live)
             CASE::quad(x+1, y+1, CELL_SIZE-2, CELL_SIZE-2,
                     0, 0, 0, vs);
         else
             CASE::quad(x, y, CELL_SIZE, CELL_SIZE,
                     255, 255, 255, vs);
-        */
+        /*
         auto clamp = [](auto x){
             return x > 255 ? 255 : x < 0 ? 0 : x;
         };
@@ -70,6 +69,7 @@ public:
         else
             CASE::quad(x, y, CELL_SIZE, CELL_SIZE,
                     255-clamp(age), 255-clamp(age), 255-clamp(age), vs);
+        */
     }
 };
 
