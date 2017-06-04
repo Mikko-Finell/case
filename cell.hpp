@@ -33,7 +33,6 @@ class ZCell {
 public:
 
     using Agent = T;
-
     static constexpr int depth = LAYERS;
     int x = 0, y = 0;
     int index = 0;
