@@ -1,6 +1,7 @@
 #ifndef CASE_RAND
 #define CASE_RAND
 
+#include <limits>
 #include <algorithm>
 #include <random>
 
@@ -14,22 +15,37 @@ using Engine = std::minstd_rand;
 //using Engine = std::ranlux24;
 #endif
 
-auto seed() {
+inline auto seed() {
 #ifdef CASE_DETERMINISTIC
-    return 0;
+    static int index = 0;
+    static const unsigned int seed[] = {
+        170077028, 4157006078, 3702102293, 2899679562,
+        2279478864, 1429673373, 3938844402, 2349274950
+    };
+    return static_cast<Engine::result_type>(seed[index++ % 8]);
 #else
-    std::random_device rd;
+    static std::random_device rd;
     return rd();
 #endif
 }
 
-template <class DistributionType>
+template <class DistType, int A = std::numeric_limits<int>::min(),
+                          int B = std::numeric_limits<int>::max()>
 class Random {
     mutable Engine engine{seed()};
+    mutable DistType dist{A, B};
 
 public:
+    void param(const int a, const int b) const {
+        dist = DistType{a, b};
+    }
+
+    int operator()() const {
+        return dist(engine);
+    }
+
     int operator()(const int a, const int b) const {
-        DistributionType dist(a, b);
+        dist = DistType{a, b};
         return dist(engine);
     }
 
@@ -46,44 +62,16 @@ public:
     }
 };
 
-using Uniform = Random<std::uniform_int_distribution<int>>;
-using Gaussian = Random<std::normal_distribution<>>;
-using Cauchy = Random<std::cauchy_distribution<>>;
+template <int A = 0, int B = 100>
+using Uniform = Random<std::uniform_int_distribution<int>, A, B>;
 
-template<int LOW, int HIGH>
-class RDist {
-    mutable Engine engine{seed()};
-    mutable std::uniform_int_distribution<int> dist{LOW, HIGH};
+template <int A = 0, int B = 100>
+using Gaussian = Random<std::normal_distribution<>, A, B>;
 
-public:
-    int operator()() const {
-        return dist(engine);
-    }
-};
+template <int A = 0, int B = 100>
+using Cauchy = Random<std::cauchy_distribution<>, A, B>;
 
-template<int A, int B>
-class RGaus {
-    mutable Engine engine{seed()};
-    mutable std::normal_distribution<> dist{A, B};
-
-public:
-    int operator()() const {
-        return dist(engine);
-    }
-};
-
-template<int A, int B>
-class RCauc {
-    mutable Engine engine{seed()};
-    mutable std::cauchy_distribution<> dist{A, B};
-
-public:
-    int operator()() const {
-        return dist(engine);
-    }
-};
-
-using RBool = RDist<0, 1>;
+using SBool = Uniform<0, 1>;
 
 } // CASE
 
