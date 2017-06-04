@@ -5,13 +5,14 @@
 #include <cassert>
 #include <vector>
 
+#include "random.hpp"
 #include "timer.hpp"
 
 namespace CASE {
 
 template <class Agent>
 class AgentManager {
-    Uniform random;
+    Uniform<> random;
     Agent * agents = nullptr;
     const int max_agents;
     std::vector<int> inactive;
@@ -107,10 +108,7 @@ public:
     }
 
     int popcount() const {
-        auto count = 0;
-        for (auto i = 0; i < max_agents; i++)
-            count += agents[i].active() ? 1 : 0;
-        return count;
+        return max_agents - inactive.size();
     }
 
     void clear() {
