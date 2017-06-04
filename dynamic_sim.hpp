@@ -6,7 +6,6 @@
 #include <SFML/Graphics.hpp>
 
 #include "array_buffer.hpp"
-#include "graphics.hpp"
 #include "grid.hpp"
 #include "agent_manager.hpp"
 #include "timer.hpp"
@@ -35,10 +34,9 @@ void Dynamic() {
     Neighbors<Cell>::columns = config.columns;
     Neighbors<Cell>::rows = config.rows;
 
-    // note Grid must be constructed before graphics
     AgentManager<Agent> manager{config.columns * config.rows * Cell::depth};
     Grid<Cell> grid{config.columns, config.rows, manager};
-    graphics::dynamic::SingleBuffer<Cell> graphics{window};
+    std::vector<sf::Vertex> vertices;
 
     auto reset = [&config, &grid, &manager]()
     {
@@ -47,10 +45,10 @@ void Dynamic() {
     reset();
 
     auto fast_forward = [&](const auto factor) {
-        const auto frames = std::pow(10, factor);
+        auto frames = std::pow(10, factor);
         std::cout << "Forwarding " << frames << " frames" << std::endl;
-        for (auto i = 0; i < frames; i++) {
-        }
+        while (frames--)
+            manager.update();
     };
 
     bool pause = false;
@@ -78,9 +76,14 @@ void Dynamic() {
             config.postprocessing(grid);
         }
 
-        graphics.clear(config.bgcolor);
-        graphics.draw(grid.cells, grid.cell_count());
-        graphics.display();
+        window.clear(config.bgcolor);
+
+        vertices.clear();
+        for (auto i = 0; i < grid.cell_count(); i++)
+            grid.cells[i].draw(vertices);
+
+        window.draw(vertices.data(), vertices.size(), sf::Quads);
+        window.display();
     }
 }
 
