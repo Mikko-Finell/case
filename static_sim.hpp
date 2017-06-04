@@ -107,7 +107,7 @@ public:
 
 template <class T>
 class UpdateJob : public Job {
-    Uniform random;
+    Uniform<> random;
     std::vector<int> indices;
     T * current = nullptr;
     T * next = nullptr;
@@ -115,6 +115,7 @@ class UpdateJob : public Job {
     volatile int subset = 0;
 
     void execute() override {
+        indices.clear();
         for (auto i = nth; i < array_size; i += n_threads) {
             indices.push_back(i);
             next[i] = current[i];
@@ -132,7 +133,6 @@ class UpdateJob : public Job {
             for (auto i = nth; i < array_size; i += n_threads)
                 current[i].update(next[i]);
         }
-        indices.clear();
     }
 
 public:
@@ -216,9 +216,9 @@ void Static() {
     };
 
     auto fast_forward = [&](const auto factor) {
-        const auto frames = std::pow(10, factor);
+        auto frames = std::pow(10, factor);
         std::cout << "Forwarding " << frames << " frames" << std::endl;
-        for (auto i = 0; i < frames; i++) {
+        while (frames--) {
             wait(update);
             world.flip();
             for (auto & job : update.jobs) {
