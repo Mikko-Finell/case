@@ -45,23 +45,12 @@ public:
         static const int r110[8] = { 0, 1, 1, 1, 0, 1, 1, 0 };
         static const int r126[8] = { 0, 1, 1, 1, 1, 1, 1, 0 };
         static const int r150[8] = { 0, 1, 1, 0, 1, 0, 0, 1 };
-        /*
-        static const int rules[7][8] = {
-            { 0, 1, 1, 1, 1, 0, 0, 0 }, // 30 
-            { 0, 1, 0, 1, 1, 0, 1, 0 }, // 90
-            { 1, 0, 0, 1, 0, 1, 1, 0 }, // 105
-            { 0, 1, 0, 1, 0, 1, 1, 0 }, // 106
-            { 0, 1, 1, 1, 0, 1, 1, 0 }, // 110
-            { 0, 1, 1, 1, 1, 1, 1, 0 }, // 126
-            { 0, 1, 1, 0, 1, 0, 0, 1 }  // 150
-        };
-        */
+
         if (active) {
             next.active = false;
             next.age++;
 
-            //if (rules[next.age % 7][pattern])
-            if (r110[pattern])
+            if (r106[pattern])
                 next.live = true;
             else
                 next.live = false;
@@ -86,7 +75,7 @@ public:
 };
 
 struct Wolframs_Rules {
-    using Agent         = Wolfram;
+    using Agent = Wolfram;
 
     const int columns = COLUMNS;
     const int cell_size = CELL_SIZE;
@@ -97,14 +86,13 @@ struct Wolframs_Rules {
     const sf::Color bgcolor = sf::Color{220, 220, 220};
 
     void init(Wolfram * agents) {
+        static CASE::Uniform<0, 10> rand;
         int index = 0;
         for (auto y = 0; y < ROWS; y++) {
             for (auto x = 0; x < COLUMNS; x++) {
                 auto & agent = agents[CASE::index(x, y, COLUMNS)];
                 agent = Wolfram{x, y};
                 agent.index = index++;
-                //if (rng(1, 10) < 3)
-                    //agent.live = true;
             }
         }
         for (auto x = 0; x < COLUMNS; x++) {
@@ -112,8 +100,11 @@ struct Wolframs_Rules {
             agent.active = true;
         }
 
-        auto & agent = agents[CASE::index(COLUMNS / 2, 0, COLUMNS)];
-        agent.live = true;
+        for (auto x = 0; x < COLUMNS; x++) {
+            auto & agent = agents[CASE::index(x, 0, COLUMNS)];
+            if (rand() < 3)
+                agent.live = true;
+        }
     };
 
     void preprocessing() {}

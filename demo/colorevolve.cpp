@@ -5,7 +5,7 @@
 #include "../random.hpp"
 #include "../grid.hpp"
 #include "../cell.hpp"
-#include "../simulator.hpp"
+#include "../dynamic_sim.hpp"
 
 #define COLUMNS 300
 #define ROWS 300
@@ -37,19 +37,19 @@ public:
 };
 
 Bacteria::Bacteria() {
-    static CASE::RDist<0, 255> rcolor;
+    static CASE::Uniform<0, 255> rcolor;
     r = rcolor(); g = rcolor(); b = rcolor();
 }
 
 Bacteria::Bacteria(const Bacteria * parent) {
-    static CASE::Uniform rand;
-    r = clamp<0,255>(parent->r + rand(-mfactor, mfactor));
-    g = clamp<0,255>(parent->g + rand(-mfactor, mfactor));
-    b = clamp<0,255>(parent->b + rand(-mfactor, mfactor));
+    static CASE::Uniform<> rand{-mfactor, mfactor};
+    r = clamp<0,255>(parent->r + rand());
+    g = clamp<0,255>(parent->g + rand());
+    b = clamp<0,255>(parent->b + rand());
 }
 
 void Bacteria::update() {
-    static CASE::RDist<-1, 1> uv;
+    static CASE::Uniform<-1, 1> uv;
     auto neighbors = cell->neighbors();
     neighbors(uv(), uv()).spawn(Bacteria{this});
 }
@@ -93,5 +93,5 @@ struct Config {
 };
 
 int main() {
-    CASE::simulator::Dynamic<Config>();
+    CASE::Dynamic<Config>();
 }

@@ -7,7 +7,7 @@
 #include "../random.hpp"
 #include "../grid.hpp"
 #include "../cell.hpp"
-#include "../simulator.hpp"
+#include "../dynamic_sim.hpp"
 
 #define COLUMNS 256
 #define ROWS 256
@@ -43,7 +43,7 @@ struct Color {
 };
 
 class Organism;
-static CASE::RDist<0,50> rcolor;
+static CASE::Uniform<0,50> rcolor;
 
 class Gene {
     virtual void _act(Organism *) {}
@@ -53,7 +53,7 @@ public:
     Color color;
 
     Gene() {
-        static CASE::RDist<0,2> rgb;
+        static CASE::Uniform<0,2> rgb;
         color[rgb()] = 50;
         color[rgb()] = 20;
     }
@@ -104,10 +104,10 @@ public:
     }
 };
 
-static CASE::RDist<-1, 1> uv;
-static CASE::RDist<0,100> r_100;
-static CASE::RDist<0,1000> r_1000;
-static CASE::RDist<0, TOT_NUM_GENES - 1> gene_select;
+static CASE::Uniform<-1, 1> uv;
+static CASE::Uniform<0,100> r_100;
+static CASE::Uniform<0,1000> r_1000;
+static CASE::Uniform<0, TOT_NUM_GENES - 1> gene_select;
 
 Organism::Organism() {
     gene.fill(nullptr);
@@ -130,12 +130,12 @@ void Organism::update() {
         return;
     }
 
-    static CASE::RDist<0, ORG_NUM_GENES - 1> rgene;
+    static CASE::Uniform<0, ORG_NUM_GENES - 1> rgene;
     gene.at(rgene())->act(this);
 
     static const std::array<int, 4> compass{ {0,1,2,3} };
     static const int dir[4][2] = { {-1,0},{1,0}, {0,-1},{0,1} };
-    static CASE::Uniform r;
+    static CASE::Uniform<> r;
 
     const auto mycolor = this->color();
 
@@ -167,7 +167,7 @@ class Gene0 : public Gene { // reproduce
     void _act(Organism * self) override {
         if (r_100() < 5) {
             static const int dir[4][2] = { {-1,0},{1,0}, {0,-1},{0,1} };
-            static CASE::RDist<0,3> r;
+            static CASE::Uniform<0,3> r;
             const auto i = r();
             auto neighbors = self->cell->neighbors();
             const auto x = dir[i][0], y = dir[i][1];
@@ -302,8 +302,8 @@ struct Config {
         GENEPOOL.at(9) = new Gene6;
         GENEPOOL.at(10) = new Gene7;
 
-        CASE::RDist<0, columns - 1> xrange;
-        CASE::RDist<0, rows - 1> yrange;
+        CASE::Uniform<0, columns - 1> xrange;
+        CASE::Uniform<0, rows - 1> yrange;
 
         for (auto i = 0; i < 32; i++) {
             grid(xrange(), yrange()).spawn(Agent{});
@@ -315,6 +315,6 @@ struct Config {
 };
 
 int main() {
-    CASE::simulator::Dynamic<Config>();
+    CASE::Dynamic<Config>();
 }
 

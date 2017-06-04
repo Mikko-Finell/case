@@ -85,7 +85,7 @@ struct GameOfLife {
     const sf::Color bgcolor = sf::Color::Black;
 
     void init(Life * agents) {
-        CASE::RDist<0, 100> rand;
+        CASE::Uniform<0, 100> rand;
         int index = 0;
         for (auto y = 0; y < ROWS; y++) {
             for (auto x = 0; x < COLUMNS; x++) {

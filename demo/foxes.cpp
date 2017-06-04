@@ -5,15 +5,11 @@
 #include "../random.hpp"
 #include "../grid.hpp"
 #include "../cell.hpp"
-#include "../simulator.hpp"
+#include "../dynamic_sim.hpp"
 
-#define COLUMNS 344
-#define ROWS 344
+#define COLUMNS 128
+#define ROWS 128
 #define CELL_SIZE 2
-
-int foxes = 0;
-int rabbits = 0;
-int grasses = 0;
 
 enum Type { Fox, Rabbit, Grass, None };
 
@@ -43,7 +39,7 @@ public:
 };
 
 Agent::Agent(const Type _type) {
-    static CASE::RDist<1, 100> dist;
+    static CASE::Uniform<0, 100> dist;
     if (_type == None) {
         auto r = dist();
         if (r > 99)
@@ -75,8 +71,8 @@ void Agent::update() {
 
     auto neighbors = cell->neighbors();
 
-    static CASE::RDist<-1, 1> uv;
-    static CASE::RDist<1, 100> rand_percent{};
+    static CASE::Uniform<-1, 1> uv;
+    static CASE::Uniform<0, 100> rand_percent{};
 
     if (type == Grass) {
         auto grass = neighbors(uv(), uv()).getlayer(1);
@@ -170,8 +166,8 @@ struct Config {
         grid.clear();
         manager.clear();
 
-        CASE::RDist<0, columns - 1> x;
-        CASE::RDist<0, rows - 1> y;
+        CASE::Uniform<0, columns - 1> x;
+        CASE::Uniform<0, rows - 1> y;
 
         for (auto i = 0; i < subset/2; i++)
             grid(x(), y()).spawn(Agent{None});
@@ -182,5 +178,5 @@ struct Config {
 };
 
 int main() {
-    CASE::simulator::Dynamic<Config>();
+    CASE::Dynamic<Config>();
 }

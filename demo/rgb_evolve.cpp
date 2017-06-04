@@ -5,7 +5,7 @@
 #include "../random.hpp"
 #include "../grid.hpp"
 #include "../cell.hpp"
-#include "../simulator.hpp"
+#include "../static_sim.hpp"
 
 #define COLUMNS 100
 #define ROWS 75
@@ -34,7 +34,7 @@ int colordiff(int a[3], int b[3]) {
 }
 
 bool decide(int gene) {
-    static CASE::RDist<1, 99> dist;
+    static CASE::Uniform<1, 99> dist;
     return dist() <= 100.0 * (gene / 255.0);
 }
 
@@ -100,9 +100,9 @@ public:
     void deactivate() { alive = false; }
 };
 
-static CASE::RDist<-1, 1> uv;
-static CASE::RDist<0,255> rcolor;
-static CASE::RDist<0,100> percent;
+static CASE::Uniform<-1, 1> uv;
+static CASE::Uniform<0,255> rcolor;
+static CASE::Uniform<0,100> percent;
 
 Organism::Organism(Type t) : Organism{this} {
     type = t;
@@ -151,7 +151,7 @@ void Organism::update() {
             hp = clamp<0, vege_max_hp>(hp + vege_max_hp * 0.01);
     }
 
-    static CASE::RDist<0, 3> r;
+    static CASE::Uniform<0, 3> r;
     const auto i = r();
     const auto vx = cardinal[i][0], vy = cardinal[i][1];
 
@@ -242,9 +242,9 @@ struct Config {
         grid.clear();
         manager.clear();
 
-        CASE::RDist<0, columns - 1> xrange;
-        CASE::RDist<0, rows - 1> yrange;
-        CASE::RDist<1,3> r;
+        CASE::Uniform<0, columns - 1> xrange;
+        CASE::Uniform<0, rows - 1> yrange;
+        CASE::Uniform<1,3> r;
         for (auto i = 0; i < 0.01 * columns * rows; i++) {
             const auto type = r();
             if (type == 1)
@@ -304,5 +304,5 @@ struct Config {
 };
 
 int main() {
-    CASE::simulator::Dynamic<Config>();
+    CASE::Dynamic<Config>();
 }

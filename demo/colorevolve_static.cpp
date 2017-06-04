@@ -5,14 +5,14 @@
 #include "../random.hpp"
 #include "../grid.hpp"
 #include "../cell.hpp"
-#include "../simulator.hpp"
+#include "../static_sim.hpp"
 
 #define COLUMNS 512
 #define ROWS 512
 #define CELL_SIZE 2
 
-int mfactor = 5;
-int start_r = 0, start_g = 0, start_b = 0;
+int mfactor = 10;
+int start_r = 255, start_g = 255, start_b = 255;
 
 template <int MIN, int MAX>
 int clamp(const int value) {
@@ -32,10 +32,10 @@ public:
         deactivate();
     }
     void mutate(const Bacteria & parent) {
-        CASE::Uniform rand;
+        static CASE::Uniform<> rand;
         r = clamp<0,255>(parent.r + rand(-mfactor, mfactor));
-        g = clamp<0,255>(parent.g + rand(-mfactor, mfactor));
-        b = clamp<0,255>(parent.b + rand(-mfactor, mfactor));
+        g = clamp<0,255>(parent.g + rand());
+        b = clamp<0,255>(parent.b + rand());
     }
     void setrgb(const int _r, const int _g, const int _b) {
         r = _r; g = _g; b = _b;
@@ -48,7 +48,6 @@ public:
     inline void deactivate() { alive = false; }
     void update(Bacteria & next) const;
 };
-
 
 void Bacteria::update(Bacteria & next) const {
     if (active())
@@ -71,7 +70,7 @@ void Bacteria::update(Bacteria & next) const {
     if (alone)
         return;
 
-    static CASE::RDist<-1, 1> uv;
+    static CASE::Uniform<-1, 1> uv;
     auto & neighbor = neighbors(uv(),uv());
     if (neighbor.active()) {
         next.mutate(neighbor);
@@ -92,7 +91,7 @@ struct Config {
     const sf::Color bgcolor{255, 255, 255};
 
     void init(Agent * agents) {
-        CASE::RDist<1, 100> rand;
+        CASE::Uniform<1, 100> rand;
         int index = 0;
         for (auto y = 0; y < ROWS; y++) {
             for (auto x = 0; x < COLUMNS; x++) {
@@ -102,7 +101,7 @@ struct Config {
             }
         }
         auto & agent = agents[CASE::index(columns/2, rows/2, COLUMNS)];
-        CASE::RDist<0,255> color;
+        CASE::Uniform<0,255> color;
         agent.setrgb(start_r, start_g, start_b);
         agent.activate();
     }
@@ -116,15 +115,15 @@ struct Config {
             mfactor = clamp<0,100>(mfactor - 1);
             std::cout << "Mutation Factor  " << mfactor << std::endl;
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num1)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::B)) {
             start_r = 0; start_g = 0; start_b = 0;
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num2)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
             start_r = 255; start_g = 255; start_b = 255;
         }
     }
 };
 
 int main() {
-    CASE::simulator::Static<Config>();
+    CASE::Static<Config>();
 }

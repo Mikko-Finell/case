@@ -2,32 +2,24 @@
 #include "../neighbors.hpp"
 #include "../quad.hpp"
 #include "../grid.hpp"
-#include "../simulator.hpp"
+#include "../static_sim.hpp"
 
 #define COLUMNS 256
 #define ROWS 256
 #define CELL_SIZE 3
 
 int rng(const int low, const int high) {
-    static CASE::Random rand;
+    static CASE::Uniform<> rand;
     return rand(low, high);
 }
 
 static constexpr int color[6][3] = {
-    {233,191,141},   // stargoon
-    {178,184,196},   // flower
-    {48,94,83},      // grade bat
-    {176,99,108},    // grass bat
-    {201,199,165},   // snowbonk
-    {197,162,171},   // stanky bean
-    /*
     {255,0,0},   // red
     {0,255,0},   // green
     {0,0,255},   // blue
     {255,255,0}, // yellow
     {255,0,255}, // purple
     {0,255,255}, // cyan
-    */
 };
 
 struct Color {
@@ -90,7 +82,7 @@ public:
     }
 };
 
-struct GameOfLife {
+struct ColorSwitchers {
     using Agent = Automata;
 
     const int columns = COLUMNS;
@@ -102,6 +94,7 @@ struct GameOfLife {
     const sf::Color bgcolor = sf::Color::Black;
 
     void init(Automata * agents) {
+        CASE::Uniform<0,5> random;
         int index = 0;
         for (auto y = 0; y < ROWS; y++) {
             for (auto x = 0; x < COLUMNS; x++) {
@@ -109,12 +102,15 @@ struct GameOfLife {
                 agent = Automata{x, y};
                 agent.index = index++;
 
-                agent.setcolor(rng(0,5));
+                agent.setcolor(random());
             }
         }
+    }
+
+    void preprocessing() {
     }
 };
 
 int main() {
-    CASE::simulator::Static<GameOfLife>();
+    CASE::Static<ColorSwitchers>();
 }
