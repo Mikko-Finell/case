@@ -4,7 +4,7 @@
 #include "../grid.hpp"
 #include "../static_sim.hpp"
 
-#define COLUMNS 700
+#define COLUMNS 450
 #define ROWS 450
 #define CELL_SIZE 2
 
