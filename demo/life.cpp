@@ -9,22 +9,7 @@
 #define CELL_SIZE 2
 
 class Life {
-    int x, y, age = 255;
-
-    int popcount() const {
-        auto neighbors = CASE::CMemAdjacent<Life>{this, COLUMNS, ROWS};
-        static const int range[3] = {-1, 0, 1};
-        auto count = 0;
-        for (const auto y : range) {
-            for (const auto x : range) {
-                if (x == 0 && y == 0)
-                    continue;
-                if (neighbors(x, y).live)
-                    count++;
-            }
-        }
-        return count;
-    }
+    int x, y;
 
 public:
     bool live = false;
@@ -35,7 +20,17 @@ public:
     }
 
     void update(Life & next) const {
-        const auto count = popcount();
+        auto neighbors = CASE::CAdjacent<Life>{this};
+        static const int range[3] = {-1, 0, 1};
+        auto count = 0;
+        for (const auto y : range) {
+            for (const auto x : range) {
+                if (x == 0 && y == 0)
+                    continue;
+                if (neighbors(x, y).live)
+                    count++;
+            }
+        }
         if (live) {
             if (count < 2)
                 next.live = false;
@@ -44,12 +39,9 @@ public:
                 next.live = false;
         }
         else {
-            if (count == 3) {
+            if (count == 3)
                 next.live = true;
-                next.age = 0;
-            }
         }
-        next.age++;
     }
 
     void draw(sf::Vertex * vs) const {
@@ -59,17 +51,6 @@ public:
         else
             CASE::quad(x, y, CELL_SIZE, CELL_SIZE,
                     255, 255, 255, vs);
-        /*
-        auto clamp = [](auto x){
-            return x > 255 ? 255 : x < 0 ? 0 : x;
-        };
-        if (live)
-            CASE::quad(x+1, y+1, CELL_SIZE-2, CELL_SIZE-2,
-                    255-clamp(age), 0, 0, vs);
-        else
-            CASE::quad(x, y, CELL_SIZE, CELL_SIZE,
-                    255-clamp(age), 255-clamp(age), 255-clamp(age), vs);
-        */
     }
 };
 
@@ -93,6 +74,7 @@ struct GameOfLife {
                 agent = Life{x, y};
                 if (rand() < 25)
                     agent.live = true;
+
                 agent.index = index++;
             }
         }
