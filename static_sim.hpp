@@ -1,3 +1,6 @@
+/* Author: Mikko Finell
+ * License: Public Domain */
+
 #ifndef CASE_STATIC_SIM
 #define CASE_STATIC_SIM
 
@@ -8,79 +11,15 @@
 #include <vector>
 #include <algorithm>
 
-#include <thread>
-#include <mutex>
-#include <thread>
-#include <condition_variable>
-
 #include <SFML/Graphics.hpp>
 
+#include "job.hpp"
 #include "random.hpp"
-#include "array_buffer.hpp"
+#include "pair.hpp"
 #include "timer.hpp"
 #include "events.hpp"
 
 namespace CASE {
-
-class Job {
-    std::condition_variable cv_done;
-    std::condition_variable cv_launch;
-    std::mutex              mutex_done;
-    std::mutex              mutex_launch;
-    bool flag_terminate     = false;
-    bool flag_launch        = false;
-    bool flag_done          = false;
-
-    virtual void execute() = 0;
-
-protected:
-    const int nth;
-    const int n_threads;
-
-public:
-    std::thread thread;
-
-    Job(const int n, const int thread_count)
-        : nth(n), n_threads(thread_count)
-    {}
-
-    void wait() {
-        std::unique_lock<std::mutex> lock_done{mutex_done};
-        cv_done.wait(lock_done, [this]{ return flag_done; });
-        flag_done = false;
-    }
-
-    void launch() {
-        {
-            std::lock_guard<std::mutex> lock_launch{mutex_launch};
-            flag_launch = true;
-        }
-        cv_launch.notify_one();
-    }
-
-    void terminate() {
-        flag_terminate = true;
-    }
-
-    void run() {
-        while (true) {
-            {
-                std::unique_lock<std::mutex> lock_launch{mutex_launch};
-                flag_launch = false;
-                {
-                    std::lock_guard<std::mutex> lock_done{mutex_done};
-                    flag_done = true;
-                }
-                cv_done.notify_one();
-                cv_launch.wait(lock_launch, [this]{ return flag_launch; });
-            }
-            if (flag_terminate)
-                return;
-
-            execute();
-        }
-    }
-};
 
 template <class T>
 class GraphicsJob : public Job {
@@ -99,6 +38,8 @@ public:
     using Job::Job;
 
     void upload(const T * objs, sf::Vertex * vs, const int count) {
+        wait();
+
         objects = objs;
         vertices = vs;
         array_size = count;
@@ -139,6 +80,8 @@ public:
     using Job::Job;
 
     void upload(T * first, T * second, const int count, const int ss) {
+        wait();
+
         current = first;
         next = second;
         array_size = count;
@@ -155,7 +98,7 @@ void Static() {
     const auto size      = config.columns * config.rows;
     const auto subset    = config.subset;
     auto agents          = new Agent[size * 2];
-    auto world           = ArrayBuffer<Agent>{agents, agents + size};
+    auto world           = Pair<Agent *>{agents, agents + size};
     auto framerate       = config.framerate;
 
     // set up SFML
@@ -166,52 +109,29 @@ void Static() {
     window.setKeyRepeatEnabled(false);
     window.setVerticalSyncEnabled(true);
 
-    enum Access { Open, Closed };
-
-    auto wait = [](auto && task) {
-       if (task.access != Open) {
-            for (auto & job : task.jobs)
-                job.wait();
-            task.access = Open;
-        }
-    };
+    // set number of threads used by update and graphics, with a minimum of 1
+    const int threads = std::max<int>(std::thread::hardware_concurrency()-1, 1);
 
     // initialize update threads
-    struct Update {
-        std::list<UpdateJob<Agent>> jobs;
-        Access access = Access::Closed;
-    } update;
-
-    // set number of threads used by update and graphics, with a minimum of one
-    constexpr unsigned int mt = 1;
-    const int threads = std::max(std::thread::hardware_concurrency() - 1, mt);
+    std::list<UpdateJob<Agent>> update_jobs;
     for (auto i = 0; i < threads; i++) {
-        update.jobs.emplace_back(i, threads);
-        auto & job = update.jobs.back();
+        update_jobs.emplace_back(i, threads);
+        auto & job = update_jobs.back();
         job.thread = std::thread{[&job]{ job.run(); }};
     }
-
-    wait(update);
-
-    struct Graphics {
-        std::list<GraphicsJob<Agent>> jobs;
-        Access access = Access::Closed;
-        std::vector<sf::Vertex> vertices[2];
-        ArrayBuffer<std::vector<sf::Vertex>> vs{&vertices[0], &vertices[1]};
-    } graphics;
 
     // initialize graphics threads
+    std::list<GraphicsJob<Agent>> graphics_jobs;
+    Pair<std::vector<sf::Vertex>> vertices;
     for (auto i = 0; i < threads; i++) {
-        graphics.jobs.emplace_back(i, threads);
-        auto & job = graphics.jobs.back();
+        graphics_jobs.emplace_back(i, threads);
+        auto & job = graphics_jobs.back();
         job.thread = std::thread{[&job]{ job.run(); }};
     }
 
-    wait(graphics);
-
     auto reset = [&]() {
-        wait(update);
-        wait(graphics);
+        for (auto & job : update_jobs) job.wait();
+        for (auto & job : graphics_jobs) job.wait();
         config.init(world.next());
     };
 
@@ -219,13 +139,11 @@ void Static() {
         auto frames = std::pow(10, factor);
         std::cout << "Forwarding " << frames << " frames" << std::endl;
         while (frames--) {
-            wait(update);
             world.flip();
-            for (auto & job : update.jobs) {
+            for (auto & job : update_jobs) {
                 job.upload(world.current(), world.next(), size, subset);
                 job.launch();
             }
-            update.access = Closed;
         }
     };
     
@@ -235,71 +153,55 @@ void Static() {
     timer.start();
 
     config.init(world.next());
-
+    
     while (running) {
         bool single_step = false;
-        bool update_frame = false;
+        bool update = false;
         eventhandling(window, running, pause, single_step, framerate,
                       reset, fast_forward);
 
         if (pause) {
             if (single_step)
-                update_frame = true;
+                update = true;
         }
         else if (timer.dt() >= 1000.0 / framerate) {
             timer.reset();
-            update_frame = true;
+            update = true;
         }
 
-        if (update_frame) {
-            wait(update);
+        if (update) {
+            for (auto & job : update_jobs)
+                job.wait();
 
             config.preprocessing();
-
             world.flip();
-            for (auto & job : update.jobs) {
+            for (auto & job : update_jobs) {
                 job.upload(world.current(), world.next(), size, subset);
                 job.launch();
             }
-            update.access = Closed;
         }
 
         // draw
-        wait(graphics);
-        graphics.vs.flip(); // swap buffers
-        graphics.vs.next()->resize(size * 4);
-        for (auto & job : graphics.jobs) {
-            job.upload(world.current(), graphics.vs.next()->data(), size);
+        vertices.flip();
+        vertices.next().resize(size * 4);
+        for (auto & job : graphics_jobs) {
+            job.upload(world.current(), vertices.next().data(), size);
             job.launch();
         }
-        graphics.access = Closed;
 
         // display
         window.clear(config.bgcolor);
-        auto & current = *graphics.vs.current();
+        auto & current = vertices.current();
         window.draw(current.data(), current.size(), sf::Quads);
         window.display();
     }
 
     // terminate update threads
-    wait(update);
-    for (auto & job : update.jobs) {
+    for (auto & job : update_jobs)
         job.terminate();
-        job.upload(nullptr, nullptr, 0, 0);
-        job.launch();
-        job.thread.join();
-    }
-    update.jobs.clear();
 
-    // graphics terminate
-    wait(graphics);
-    for (auto & job : graphics.jobs) {
+    for (auto & job : graphics_jobs)
         job.terminate();
-        job.upload(nullptr, nullptr, 0);
-        job.launch();
-        job.thread.join();
-    }
-    graphics.jobs.clear();
 
     delete [] agents;
 }
