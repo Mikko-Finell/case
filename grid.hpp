@@ -1,3 +1,6 @@
+/* Author: Mikko Finell
+ * License: Public Domain */
+
 #ifndef CASE_GRID
 #define CASE_GRID
 

@@ -1,3 +1,6 @@
+/* Author: Mikko Finell
+ * License: Public Domain */
+
 #ifndef CASE_CELL
 #define CASE_CELL
 
