@@ -101,6 +101,9 @@ void Static() {
     auto world           = Pair<Agent *>{agents, agents + size};
     auto framerate       = config.framerate;
 
+    CAdjacent<Agent>::columns = config.columns;
+    CAdjacent<Agent>::rows = config.rows;
+
     // set up SFML
     sf::RenderWindow window;
     const auto win_w = config.columns * config.cell_size;

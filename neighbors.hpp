@@ -12,14 +12,19 @@
 namespace CASE {
 
 template <class Cell>
-class CMemAdjacent {
-    const int columns = 0, rows = 0;
+class CAdjacent {
     const Cell * self = nullptr;
 
 public:
-    CMemAdjacent(const Cell * cell, const int c, const int r)
-        : columns(c), rows(r), self(cell)
+    CAdjacent(const Cell * cell) : self(cell)
     {}
+
+    CAdjacent(const Cell * cell, const int columns, const int rows)
+        : self(cell)
+    {
+        CAdjacent::columns = columns;
+        CAdjacent::rows = rows;
+    }
 
     const Cell & operator()(const int x, const int y) const {
         const int i = self->index;
@@ -27,19 +32,27 @@ public:
         const int gy = (i / columns) + y;
         return *(self - i + index(wrap(gx, columns), wrap(gy, rows), columns));
     }
+
+    static int columns;
+    static int rows;
 };
 
+template <class T>
+int CAdjacent<T>::columns = 0;
+template <class T>
+int CAdjacent<T>::rows = 0;
+
 template <class Cell>
-class MemAdjacent {
-    const int columns = 0, rows = 0;
-    mutable Cell * self = nullptr;
+class Adjacent {
+    int columns = 0, rows = 0;
+    Cell * self = nullptr;
 
 public:
-    MemAdjacent(Cell * cell, const int c, const int r)
+    Adjacent(Cell * cell, const int c, const int r)
         : columns(c), rows(r), self(cell)
     {}
 
-    Cell & operator()(const int x, const int y) const {
+    Cell & operator()(const int x, const int y) {
         assert(self != nullptr);
 
         const int i = self->index;
@@ -59,12 +72,10 @@ class Neighbors {
         return 3 * y + x + 4;
     }
 
-    Cell * center = nullptr;
-    MemAdjacent<Cell> adjacent;
+    Adjacent<Cell> adjacent;
     
 public:
-    Neighbors(Cell * cell)
-        : center(cell), adjacent{center, columns, rows}
+    Neighbors(Cell * cell) : adjacent{cell, columns, rows}
     {
         assert(columns != 0 && rows != 0);
     }
