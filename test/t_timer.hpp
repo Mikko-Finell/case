@@ -50,11 +50,37 @@ bool sleep_fzz() {
     return std::all_of(results.cbegin(), results.cend(), [](bool b){return b;});
 }
 
+bool startstop() {
+    using namespace std::chrono;
+    CASE::Timer t;
+
+    t.start();
+    std::this_thread::sleep_for(milliseconds(100)); // should count this dt
+    t.stop();
+
+    std::this_thread::sleep_for(milliseconds(100)); // should ignore this dt
+
+    t.start();
+    std::this_thread::sleep_for(milliseconds(100)); // should count this dt
+    t.stop();
+
+    std::this_thread::sleep_for(milliseconds(100)); // should ignore this dt
+
+    t.start();
+    std::this_thread::sleep_for(milliseconds(100)); // should count this dt
+    t.stop();
+
+    std::this_thread::sleep_for(milliseconds(100)); // should ignore this dt
+
+    return t.duration() > 290 && t.duration() < 310;
+}
+
 void run() {
     cpptest::Module test{"timer"};
     test.fn("no start", no_start);
     test.fn("no stop", no_stop);
     test.fn("sleep fuzzing", sleep_fzz);
+    test.fn("start, stop", startstop);
 }
 
 } // t_timer

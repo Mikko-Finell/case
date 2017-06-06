@@ -74,8 +74,8 @@ bool cellspawn() {
 }
 
 bool updateextract() {
-    Uniform rng;
-    const auto popsize = rng(1, 512);
+    Uniform<1,512> rng;
+    const auto popsize = rng();
     AgentManager<Agent> man{popsize};
     auto cells = new ZCell<Agent, 2>[popsize];
     for (auto i = 0; i < popsize; i++)
