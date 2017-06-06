@@ -4,19 +4,35 @@
 #include <cstring>
 #include <cassert>
 #include <vector>
+#include <list>
 
+#include "pair.hpp"
 #include "random.hpp"
+#include "job.hpp"
 #include "timer.hpp"
 
 namespace CASE {
 
+class ShuffleJob : public Job {
+    Uniform<> random;
+    std::vector<int> * indices;
+
+    void execute() override {
+        random.shuffle(*indices);
+    }
+
+public:
+    void upload(std::vector<int> * i) { indices = i; }
+};
+
 template <class Agent>
 class AgentManager {
-    Uniform<> random;
     Agent * agents = nullptr;
     const int max_agents;
     std::vector<int> inactive;
-    std::vector<int> indices;
+    
+    ShuffleJob shuffle;
+    Pair<std::vector<int>> indices;
 
     void refresh_inactive() {
         if (inactive.empty()) {
@@ -67,10 +83,21 @@ class AgentManager {
         agents[i].activate();
         return &agents[i];
     }
-
+    
 public:
+    AgentManager(const int max) : max_agents(max)
+    {
+        clear();
+        shuffle.thread = std::thread{[this]{ shuffle.run(); }};
+    }
+
     void update() {
-        for (const auto i : random.shuffle(indices)) {
+        indices.flip();
+        shuffle.wait();
+        shuffle.upload(&indices.next());
+        shuffle.launch();
+
+        for (const auto i : indices.current()) {
             auto & agent = agents[i];
             if (agent.active())
                 agent.update();
@@ -80,13 +107,6 @@ public:
                     agent.cell->extract(agent.z);
             }
         }
-    }
-
-    AgentManager(const int max) : max_agents(max)
-    {
-        indices.resize(max_agents);
-        std::iota(indices.begin(), indices.end(), 0);
-        clear();
     }
 
     ~AgentManager() {
@@ -115,6 +135,15 @@ public:
         if (agents != nullptr)
             delete [] agents;
         agents = new Agent[max_agents];
+
+        auto & a = indices.current();
+        a.resize(max_agents);
+        std::iota(a.begin(), a.end(), 0);
+
+        auto & b = indices.next();
+        b.resize(max_agents);
+        std::iota(b.begin(), b.end(), 0);
+
         inactive.resize(max_agents);
         std::iota(inactive.rbegin(), inactive.rend(), 0);
     }
