@@ -1,3 +1,6 @@
+/* Author: Mikko Finell
+ * License: Public Domain */
+
 #ifndef CASE_SIM
 #define CASE_SIM
 
@@ -5,7 +8,6 @@
 
 #include <SFML/Graphics.hpp>
 
-#include "array_buffer.hpp"
 #include "grid.hpp"
 #include "agent_manager.hpp"
 #include "timer.hpp"
@@ -58,20 +60,20 @@ void Dynamic() {
 
     while (running) {
         bool single_step = false;
-        bool update_frame = false;
+        bool update = false;
 
         eventhandling(window, running, pause, single_step, framerate,
                       reset, fast_forward);
 
         if (pause) {
             if (single_step)
-                update_frame = true;
+                update = true;
         }
         else if (timer.dt() >= 1000.0 / framerate) {
             timer.reset();
-            update_frame = true;
+            update = true;
         }
-        if (update_frame) {
+        if (update) {
             manager.update();
             config.postprocessing(grid);
         }
