@@ -4,7 +4,6 @@
 #ifndef CASE_AGENTMANAGER
 #define CASE_AGENTMANAGER
 
-#include <cstring>
 #include <cassert>
 #include <vector>
 #include <list>
@@ -12,7 +11,6 @@
 #include "pair.hpp"
 #include "random.hpp"
 #include "job.hpp"
-#include "timer.hpp"
 
 namespace CASE {
 
@@ -21,6 +19,7 @@ class ShuffleJob : public Job {
     std::vector<int> * indices;
 
     void execute() override {
+        assert(indices != nullptr);
         random.shuffle(*indices);
     }
 
@@ -101,14 +100,8 @@ public:
         shuffle.launch();
 
         for (const auto i : indices.current()) {
-            auto & agent = agents[i];
-            if (agent.active())
-                agent.update();
-
-            if (agent.active() == false) {
-                if (agent.cell != nullptr)
-                    agent.cell->extract(agent.z);
-            }
+            if (agents[i].active())
+                agents[i].update();
         }
     }
 
