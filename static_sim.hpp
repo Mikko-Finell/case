@@ -176,7 +176,8 @@ void Static() {
             for (auto & job : update_jobs)
                 job.wait();
 
-            config.preprocessing();
+            config.postprocessing(world.current());
+
             world.flip();
             for (auto & job : update_jobs) {
                 job.upload(world.current(), world.next(), size, subset);
