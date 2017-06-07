@@ -27,6 +27,9 @@ public:
     }
 
     const Cell & operator()(const int x, const int y) const {
+        assert(self != nullptr);
+        assert(columns != 0 && rows != 0);
+
         const int i = self->index;
         const int gx = (i % columns) + x;
         const int gy = (i / columns) + y;
@@ -50,7 +53,10 @@ class Adjacent {
 public:
     Adjacent(Cell * cell, const int c, const int r)
         : columns(c), rows(r), self(cell)
-    {}
+    {
+        assert(cell != nullptr);
+        assert(columns != 0 && rows != 0);
+    }
 
     Cell & operator()(const int x, const int y) {
         assert(self != nullptr);
@@ -77,6 +83,7 @@ class Neighbors {
 public:
     Neighbors(Cell * cell) : adjacent{cell, columns, rows}
     {
+        assert(cell != nullptr);
         assert(columns != 0 && rows != 0);
     }
 
@@ -100,7 +107,7 @@ public:
         return count;
     }
 
-    Cell & operator()(const int x, const int y) {
+    inline Cell & operator()(const int x, const int y) {
         return adjacent(x, y);
     }
 

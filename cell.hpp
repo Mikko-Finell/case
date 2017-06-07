@@ -34,7 +34,6 @@ class ZCell {
     }
 
 public:
-
     using Agent = T;
     static constexpr int depth = LAYERS;
     int x = 0, y = 0;
@@ -45,46 +44,41 @@ public:
             array[i] = nullptr;
     }
 
-    ZCell(AgentManager<Agent> & am) : ZCell{}
-    {
+    ZCell(AgentManager<Agent> & am) {
         set_manager(am);
+        for (auto i = 0; i < depth; i++)
+            array[i] = nullptr;
     }
 
-    void set_manager(AgentManager<Agent> & am) {
+    inline void set_manager(AgentManager<Agent> & am) {
         manager = &am;
     }
 
     void operator=(ZCell & other) {
-        for (auto i = 0; i < LAYERS; i++)
-            replace(other.extract(i));
-    }
-
-    auto replace(Agent & agent) {
-        extract(agent.z);
-        return insert(agent);
+        for (auto i = 0; i < LAYERS; i++) {
+            extract(i);
+            insert(other.extract(i));
+        }
     }
 
     Agent * spawn(Agent *& pointer) {
         assert(manager != nullptr);
-
         return _spawn(manager->spawn(pointer));
     }
 
     Agent * spawn(Agent *&& pointer) {
         assert(manager != nullptr);
-
         return _spawn(manager->spawn(pointer));
     }
 
     Agent * spawn(Agent && agent) {
         assert(manager != nullptr);
-
         auto pointer = manager->spawn(std::forward<T>(agent));
         return _spawn(pointer);
     }
 
     auto neighbors() {
-        return Neighbors<ZCell>{this};
+        return Neighbors<ZCell<Agent, depth>>{this};
     }
 
     Agent * getlayer(const int layer) {
@@ -99,7 +93,7 @@ public:
         return array[layer];
     }
 
-    Agent * operator[](const int layer) {
+    inline Agent * operator[](const int layer) {
         return getlayer(layer);
     }
 
@@ -131,39 +125,24 @@ public:
             return insert(*agent);
     }
 
-    void force_insert(Agent * agent) {
-        extract(agent->z);
-        array[agent->z] = agent;
-        agent->cell = this;
-        agent->activate();
-    }
-
     Agent * extract(const int layer) {
         assert(layer < LAYERS);
         assert(layer >= 0);
 
-        auto occupant = array[layer];
-        if (occupant != nullptr) {
-            occupant->cell = nullptr;
-            occupant->deactivate();
+        auto agent = array[layer];
+        if (agent != nullptr) {
+            agent->cell = nullptr;
+            agent->deactivate();
             array[layer] = nullptr;
         }
-        return occupant;
-    }
-
-    void swap_with(ZCell & other) {
-        for (auto i = 0; i < LAYERS; i++) {
-            auto agent = extract(i);
-            insert(other.extract(i));
-            other.insert(agent);
-        }
+        return agent;
     }
 
     void draw(std::vector<sf::Vertex> & vertices) const {
         for (auto i = depth - 1; i >= 0; --i) {
-            const auto occupant = array[i];
-            if (occupant != nullptr && occupant->active())
-                occupant->draw(x, y, vertices);
+            const auto agent = array[i];
+            if (agent != nullptr && agent->active())
+                agent->draw(x, y, vertices);
         }
     }
 
@@ -175,7 +154,7 @@ public:
     int popcount() const {
         auto count = 0;
         for (const auto layer : array) {
-            if (layer != nullptr)
+            if (layer != nullptr && layer->active())
                 count++;
         }
         return count;

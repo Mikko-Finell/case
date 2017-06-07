@@ -77,10 +77,6 @@ public:
     inline int cell_count() const {
         return rows * columns;
     }
-
-    inline int max_agents() const {
-        return cell_count() * Cell::depth;
-    }
 };
 
 } // CASE
