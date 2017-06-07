@@ -4,8 +4,6 @@
 #ifndef CASE_SIM
 #define CASE_SIM
 
-#include <iostream>
-
 #include <SFML/Graphics.hpp>
 
 #include "grid.hpp"
@@ -73,6 +71,7 @@ void Dynamic() {
             timer.reset();
             update = true;
         }
+
         if (update) {
             manager.update();
             config.postprocessing(grid);
