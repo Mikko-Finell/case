@@ -57,30 +57,34 @@ public:
 struct GameOfLife {
     using Agent = Life;
 
-    const int columns = COLUMNS;
-    const int cell_size = CELL_SIZE;
-    const int rows = ROWS;
+    static constexpr int columns = COLUMNS;
+    static constexpr int rows = ROWS;
+    static constexpr int cell_size = CELL_SIZE;
+    static constexpr int subset = columns * rows;
     double framerate = 20.0;
-    const int subset = columns * rows;
     const char* title = "GameOfLife";
     const sf::Color bgcolor = sf::Color::Black;
 
     void init(Life * agents) {
-        CASE::Uniform<0, 100> rand;
         int index = 0;
         for (auto y = 0; y < ROWS; y++) {
             for (auto x = 0; x < COLUMNS; x++) {
                 auto & agent = agents[CASE::index(x, y, COLUMNS)];
                 agent = Life{x, y};
-                if (rand() < 25)
-                    agent.live = true;
-
                 agent.index = index++;
             }
         }
+        CASE::Gaussian<(columns+rows) / 4, 50> random;
+        for (auto i = 0; i < 10000; i++) {
+            const auto x = CASE::wrap(random(), columns),
+                       y = CASE::wrap(random(), rows);
+
+            auto & agent = agents[CASE::index(x, y, columns)];
+            agent.live = true;
+        }
     }
 
-    void preprocessing() {}
+    void postprocessing(Agent *) {}
 };
 
 int main() {
