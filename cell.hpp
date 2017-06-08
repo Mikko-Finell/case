@@ -20,19 +20,6 @@ class ZCell {
     T * array[LAYERS];
     AgentManager<T> * manager = nullptr;
 
-    T * _spawn(T * pointer) {
-        if (pointer == nullptr)
-            return nullptr;
-
-        const auto code = insert(*pointer);
-        if (code == Rejected) {
-            pointer->deactivate();
-            pointer = nullptr;
-        }
-
-        return pointer;
-    }
-
 public:
     using Agent = T;
     static constexpr int depth = LAYERS;
@@ -61,20 +48,25 @@ public:
         }
     }
 
-    Agent * spawn(Agent *& pointer) {
-        assert(manager != nullptr);
-        return _spawn(manager->spawn(pointer));
-    }
-
-    Agent * spawn(Agent *&& pointer) {
-        assert(manager != nullptr);
-        return _spawn(manager->spawn(pointer));
-    }
-
     Agent * spawn(Agent && agent) {
         assert(manager != nullptr);
+
+        if (array[agent.z] != nullptr) {
+            if (array[agent.z]->active())
+                return nullptr;
+        }
+
         auto pointer = manager->spawn(std::forward<T>(agent));
-        return _spawn(pointer);
+        if (pointer == nullptr)
+            return nullptr;
+
+        const auto code = insert(*pointer);
+        if (code == Rejected) {
+            pointer->deactivate();
+            pointer = nullptr;
+        }
+
+        return pointer;
     }
 
     auto neighbors() {
