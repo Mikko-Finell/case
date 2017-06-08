@@ -22,21 +22,6 @@ inline void setcolor(sf::Vertex & vs, const int r, const int g, const int b) {
 } // _impl
 
 inline
-void quad(const int x, const int y, const int w, const int h,
-          const int r, const int g, const int b, sf::Vertex * vs)
-{
-    using namespace _impl;
-    setpos(vs[0], x, y);
-    setpos(vs[1], x + w, y);
-    setpos(vs[2], x + w, y + h);
-    setpos(vs[3], x, y + h);
-    setcolor(vs[0], r, g, b);
-    setcolor(vs[1], r, g, b);
-    setcolor(vs[2], r, g, b);
-    setcolor(vs[3], r, g, b);
-}
-
-inline
 void quad(const int x, const int y, const int w, const int h, sf::Vertex * vs) {
     using namespace _impl;
     setpos(vs[0], x, y);
@@ -51,6 +36,14 @@ inline void quad(const int r, const int g, const int b, sf::Vertex * vs) {
     setcolor(vs[1], r, g, b);
     setcolor(vs[2], r, g, b);
     setcolor(vs[3], r, g, b);
+}
+
+inline
+void quad(const int x, const int y, const int w, const int h,
+          const int r, const int g, const int b, sf::Vertex * vs)
+{
+    quad(x, y, w, h, vs);
+    quad(r, g, b, vs);
 }
 
 template <class Position, class Size, class Color>
