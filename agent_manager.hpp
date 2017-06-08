@@ -134,13 +134,16 @@ public:
 
         auto & a = indices.current();
         a.resize(max_agents);
+        a.shrink_to_fit();
         std::iota(a.begin(), a.end(), 0);
 
         auto & b = indices.next();
         b.resize(max_agents);
+        b.shrink_to_fit();
         std::iota(b.begin(), b.end(), 0);
 
         inactive.resize(max_agents);
+        inactive.shrink_to_fit();
         std::iota(inactive.rbegin(), inactive.rend(), 0);
     }
 };
