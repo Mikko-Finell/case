@@ -26,7 +26,7 @@ class GraphicsJob : public Job {
 
     const T * objects = nullptr;
     sf::Vertex * vertices = nullptr;
-    volatile int array_size = 0;
+    int array_size = 0;
 
     void execute() override {
         constexpr int VS_PER_OBJ = 4;
@@ -39,7 +39,6 @@ public:
 
     void upload(const T * objs, sf::Vertex * vs, const int count) {
         wait();
-
         objects = objs;
         vertices = vs;
         array_size = count;
@@ -52,8 +51,8 @@ class UpdateJob : public Job {
     std::vector<int> indices;
     T * current = nullptr;
     T * next = nullptr;
-    volatile int array_size = 0;
-    volatile int subset = 0;
+    int array_size = 0;
+    int subset = 0;
 
     void execute() override {
         indices.clear();
@@ -81,7 +80,6 @@ public:
 
     void upload(T * first, T * second, const int count, const int ss) {
         wait();
-
         current = first;
         next = second;
         array_size = count;
