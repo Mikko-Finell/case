@@ -7,8 +7,8 @@
 #include "../cell.hpp"
 #include "../dynamic_sim.hpp"
 
-#define COLUMNS 344
-#define ROWS 344
+#define COLUMNS 200
+#define ROWS 200
 #define CELL_SIZE 2
 
 enum Type { Fox, Rabbit, Grass, None };
@@ -81,7 +81,7 @@ void Agent::update() {
             if (grass->energy > max_energy)
                 grass->energy = max_energy;
         }
-        else if (energy > 0.3 * max_energy)
+        else if (energy > 0.2 * max_energy)
             neighbors(uv(), uv()).spawn(Agent{Grass});
     }
     else if (type == Rabbit) {

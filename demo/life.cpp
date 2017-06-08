@@ -4,9 +4,9 @@
 #include "../grid.hpp"
 #include "../static_sim.hpp"
 
-#define COLUMNS 450
-#define ROWS 450
-#define CELL_SIZE 2
+#define COLUMNS 128
+#define ROWS 128
+#define CELL_SIZE 6
 
 class Life {
     int x, y;
@@ -45,11 +45,12 @@ public:
     }
 
     void draw(sf::Vertex * vs) const {
+        static constexpr int pad = 1;
         if (live)
-            CASE::quad(x+1, y+1, CELL_SIZE-2, CELL_SIZE-2,
+            CASE::quad(x, y, CELL_SIZE-pad, CELL_SIZE-pad,
                     0, 0, 0, vs);
         else
-            CASE::quad(x, y, CELL_SIZE, CELL_SIZE,
+            CASE::quad(x, y, CELL_SIZE-pad, CELL_SIZE-pad,
                     255, 255, 255, vs);
     }
 };
@@ -61,9 +62,9 @@ struct GameOfLife {
     static constexpr int rows = ROWS;
     static constexpr int cell_size = CELL_SIZE;
     static constexpr int subset = columns * rows;
-    double framerate = 20.0;
-    const char* title = "GameOfLife";
-    const sf::Color bgcolor = sf::Color::Black;
+    double framerate = 60.0;
+    const char* title = "Game of Life";
+    const sf::Color bgcolor = sf::Color::White;
 
     void init(Life * agents) {
         int index = 0;
