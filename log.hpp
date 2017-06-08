@@ -44,8 +44,12 @@ public:
                 if (file.fail())
                     throw std::runtime_error{"file failbit"};
 
-                std::lock_guard<std::mutex> lock{mutex};
-                file << stream.rdbuf();
+                mutex.lock();
+                const auto str = stream.str();
+                stream.str("");
+                mutex.unlock();
+
+                file << str;
             }
             file.close();
         }};
@@ -59,7 +63,7 @@ public:
     template<typename T>
     Log & out(const T & t) {
         std::lock_guard<std::mutex> lock{mutex};
-        stream << t << '\n';
+        stream << t << endl;
         return *this;
     }
 
