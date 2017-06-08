@@ -35,56 +35,6 @@ class AgentManager {
     
     ShuffleJob shuffle;
     Pair<std::vector<int>> indices;
-
-    void refresh_inactive() {
-        if (inactive.empty()) {
-            for (auto i = 0; i < max_agents; i++) {
-                auto & agent = agents[i];
-                if (agent.active() == false) {
-                    inactive.push_back(i);
-                    if (agent.cell != nullptr)
-                        agent.cell->extract(agent.z);
-                }
-            }
-        }
-    }
-
-    Agent * _spawn(Agent ** _p) {
-        Agent *& pointer = *_p;
-        
-        assert(pointer < agents || pointer > (agents + max_agents));
-
-        refresh_inactive();
-
-        if (inactive.empty()) {
-            delete pointer;
-            pointer = nullptr;
-            return pointer;
-        }
-
-        const auto i = inactive.back();
-        inactive.pop_back();
-
-        agents[i] = *pointer;
-        agents[i].activate();
-        delete pointer;
-        pointer = &agents[i];
-        return pointer;
-    }
-
-    Agent * _spawn(Agent && agent) {
-        refresh_inactive();
-
-        if (inactive.empty())
-            return nullptr;
-
-        const auto i = inactive.back();
-        inactive.pop_back();
-
-        agents[i] = agent;
-        agents[i].activate();
-        return &agents[i];
-    }
     
 public:
     AgentManager(const int max) : max_agents(max)
@@ -111,16 +61,26 @@ public:
         agents = nullptr;
     }
 
-    Agent * spawn(Agent *& pointer) {
-        return _spawn(&pointer);
-    }
-
-    Agent * spawn(Agent *&& pointer) {
-        return _spawn(&pointer);
-    }
-
     Agent * spawn(Agent && agent) {
-        return _spawn(std::forward<Agent>(agent));
+        if (inactive.empty()) {
+            for (auto i = 0; i < max_agents; i++) {
+                auto & agent = agents[i];
+                if (agent.active() == false) {
+                    inactive.push_back(i);
+                    if (agent.cell != nullptr)
+                        agent.cell->extract(agent.z);
+                }
+            }
+        }
+        if (inactive.empty())
+            return nullptr;
+
+        const auto i = inactive.back();
+        inactive.pop_back();
+
+        agents[i] = agent;
+        agents[i].activate();
+        return &agents[i];
     }
 
     int popcount() const {
