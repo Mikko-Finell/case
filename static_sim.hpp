@@ -185,9 +185,7 @@ void Static() {
             dt += timer.reset();
             while (dt > frame_time && max_iter--) {
                 update();
-
                 dt -= frame_time;
-                dt += timer.reset();
             }
         }
 

@@ -79,7 +79,6 @@ void Dynamic() {
                 config.postprocessing(grid);
 
                 dt -= frame_time;
-                dt += timer.reset();
             }
         }
 
