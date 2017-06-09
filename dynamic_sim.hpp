@@ -54,27 +54,33 @@ void Dynamic() {
     bool pause = false;
     bool running = true;
     Timer timer;
-    timer.start();
+    double dt = 0.0;
 
     while (running) {
         bool single_step = false;
-        bool update = false;
 
         eventhandling(window, running, pause, single_step, framerate,
                       reset, fast_forward);
 
         if (pause) {
-            if (single_step)
-                update = true;
-        }
-        else if (timer.dt() >= 1000.0 / framerate) {
+            if (single_step) {
+                manager.update();
+                config.postprocessing(grid);
+            }
             timer.reset();
-            update = true;
         }
+        else {
+            const auto frame_time = 1000.0/framerate;
+            auto max_iter = 100;
 
-        if (update) {
-            manager.update();
-            config.postprocessing(grid);
+            dt += timer.reset();
+            while (dt > frame_time && max_iter--) {
+                manager.update();
+                config.postprocessing(grid);
+
+                dt -= frame_time;
+                dt += timer.reset();
+            }
         }
 
         window.clear(config.bgcolor);

@@ -59,7 +59,7 @@ void eventhandling(sf::RenderWindow & window, bool & running, bool & pause,
                     if (pause)
                         pause = false;
                     else
-                        framerate -= 5.0;
+                        framerate = std::max<double>(1, framerate - 5);
                     continue;
 
                 case sf::Keyboard::Num1:

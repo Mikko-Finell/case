@@ -121,6 +121,17 @@ void Static() {
         job.thread = std::thread{[&job]{ job.run(); }};
     }
 
+    auto update = [&update_jobs, &config, &world]() {
+        for (auto & job : update_jobs)
+            job.wait();
+        config.postprocessing(world.current());
+        world.flip();
+        for (auto & job : update_jobs) {
+            job.upload(world.current(), world.next(), size, subset);
+            job.launch();
+        }
+    };
+
     // initialize graphics threads
     std::list<GraphicsJob<Agent>> graphics_jobs;
     Pair<std::vector<sf::Vertex>> vertices;
@@ -151,35 +162,32 @@ void Static() {
     bool pause = false;
     bool running = true;
     Timer timer;
-    timer.start();
+    double dt = 0.0;
 
     config.init(world.next());
     
     while (running) {
         bool single_step = false;
-        bool update = false;
+
         eventhandling(window, running, pause, single_step, framerate,
                       reset, fast_forward);
 
         if (pause) {
             if (single_step)
-                update = true;
-        }
-        else if (timer.dt() >= 1000.0 / framerate) {
+                update();
+
             timer.reset();
-            update = true;
         }
+        else {
+            const auto frame_time = 1000.0/framerate;
+            auto max_iter = 100;
 
-        if (update) {
-            for (auto & job : update_jobs)
-                job.wait();
+            dt += timer.reset();
+            while (dt > frame_time && max_iter--) {
+                update();
 
-            config.postprocessing(world.current());
-
-            world.flip();
-            for (auto & job : update_jobs) {
-                job.upload(world.current(), world.next(), size, subset);
-                job.launch();
+                dt -= frame_time;
+                dt += timer.reset();
             }
         }
 
