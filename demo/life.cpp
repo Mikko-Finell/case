@@ -4,9 +4,9 @@
 #include "../grid.hpp"
 #include "../static_sim.hpp"
 
-#define COLUMNS 128
-#define ROWS 128
-#define CELL_SIZE 6
+#define COLUMNS 256
+#define ROWS 256
+#define CELL_SIZE 2
 
 class Life {
     int x, y;
@@ -45,7 +45,7 @@ public:
     }
 
     void draw(sf::Vertex * vs) const {
-        static constexpr int pad = 1;
+        static constexpr int pad = 0;
         if (live)
             CASE::quad(x, y, CELL_SIZE-pad, CELL_SIZE-pad,
                     0, 0, 0, vs);
@@ -75,8 +75,8 @@ struct GameOfLife {
                 agent.index = index++;
             }
         }
-        CASE::Gaussian<(columns+rows) / 4, 50> random;
-        for (auto i = 0; i < 10000; i++) {
+        CASE::Gaussian<(columns+rows)/4, 25> random;
+        for (auto i = 0; i < 2500; i++) {
             const auto x = CASE::wrap(random(), columns),
                        y = CASE::wrap(random(), rows);
 
