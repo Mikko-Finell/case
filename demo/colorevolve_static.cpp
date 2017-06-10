@@ -47,34 +47,28 @@ public:
     inline void activate() { alive = true; }
     inline void deactivate() { alive = false; }
     void update(Bacteria & next) const;
+
+    CASE::Uniform<0, 7> random;
 };
 
-void Bacteria::update(Bacteria & next) const {
+void Bacteria::update(Bacteria & self) const {
     if (active())
         return;
 
-    auto neighbors = CASE::CMemAdjacent<Bacteria>{this, COLUMNS, ROWS};
-    bool alone = true;
-    for (auto y = -1; y <= 1; y++) {
-        for (auto x = -1; x <= 1; x++) {
-            if (x == 0 && y == 0)
-                continue;
+    static const int dirs[][2] = {
+        {-1,-1}, { 0,-1}, { 1,-1},
+        {-1, 0},          { 1, 0},
+        {-1, 1}, { 0, 1}, { 1, 1}
+    };
 
-            auto & neighbor = neighbors(x, y);
-            if (neighbor.active()) {
-                alone = false;
-                break;
-            }
-        }
-    }
-    if (alone)
-        return;
+    const auto i = self.random();
+    const auto x = dirs[i][0], y = dirs[i][1];
 
-    static CASE::Uniform<-1, 1> uv;
-    auto & neighbor = neighbors(uv(),uv());
+    auto neighbors = CASE::CAdjacent<Bacteria>{this};
+    auto & neighbor = neighbors(x, y);
     if (neighbor.active()) {
-        next.mutate(neighbor);
-        next.activate();
+        self.mutate(neighbor);
+        self.activate();
     }
 }
 
@@ -86,7 +80,7 @@ struct Config {
     static constexpr int subset = columns * rows;
     static constexpr int cell_size = CELL_SIZE;
 
-    const double framerate = 60;
+    const double framerate = 15;
     const char* title = "Color Evolution";
     const sf::Color bgcolor{255, 255, 255};
 
@@ -101,12 +95,16 @@ struct Config {
             }
         }
         auto & agent = agents[CASE::index(columns/2, rows/2, COLUMNS)];
-        CASE::Uniform<0,255> color;
+
+        start_r = rand(0, 255);
+        start_g = rand();
+        start_b = rand();
+
         agent.setrgb(start_r, start_g, start_b);
         agent.activate();
     }
 
-    void preprocessing() {
+    void postprocessing(Agent *) {
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::PageUp)) {
             mfactor = clamp<0,100>(mfactor + 1);
             std::cout << "Mutation Factor  " << mfactor << std::endl;

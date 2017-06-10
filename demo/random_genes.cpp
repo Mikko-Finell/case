@@ -219,7 +219,7 @@ class Gene1_right : public Gene { // move right
 };
 
 class Gene2 : public Gene { // kill
-    void _act(Organism * self, Organism * other) override {
+    void _act(Organism *, Organism * other) override {
         other->hp = 0;
     }
 };
@@ -258,7 +258,7 @@ class Gene6 : public Gene { // damage
     void _act(Organism * self) override {
         self->hp -= MAX_HP * 0.1;
     }
-    void _act(Organism * self, Organism * other) override {
+    void _act(Organism *, Organism * other) override {
         other->hp -= MAX_HP * 0.2;
     }
 };
@@ -267,7 +267,7 @@ class Gene7 : public Gene { // die
     void _act(Organism * self) override {
         self->hp = 0;
     }
-    void _act(Organism * self, Organism *) override {
+    void _act(Organism *, Organism *) override {
     }
 };
 
