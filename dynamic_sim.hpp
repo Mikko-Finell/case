@@ -38,6 +38,7 @@ void Dynamic() {
     Grid<Cell> grid{config.columns, config.rows, manager};
     std::vector<sf::Vertex> vertices;
 
+
     auto reset = [&config, &grid, &manager]()
     {
         config.init(grid, manager);
@@ -53,42 +54,40 @@ void Dynamic() {
 
     bool pause = false;
     bool running = true;
-    Timer timer;
     double dt = 0.0;
+    Timer timer;
 
     while (running) {
-        bool single_step = false;
+        bool step = false;
 
-        eventhandling(window, running, pause, single_step, framerate,
+        eventhandling(window, running, pause, step, framerate,
                       reset, fast_forward);
-
         if (pause) {
-            if (single_step) {
+            if (step) {
                 manager.update();
                 config.postprocessing(grid);
             }
             timer.reset();
+            dt = 0.0;
         }
         else {
-            const auto frame_time = 1000.0/framerate;
-            auto max_iter = 100;
-
+            const auto frame_time = 1000.0 / framerate;
             dt += timer.reset();
-            while (dt > frame_time && max_iter--) {
+            if (dt > frame_time) {
+                dt -= frame_time;
+
                 manager.update();
                 config.postprocessing(grid);
-
-                dt -= frame_time;
             }
         }
 
         window.clear(config.bgcolor);
-
         vertices.clear();
+
         for (auto i = 0; i < grid.cell_count(); i++)
             grid.cells[i].draw(vertices);
-
         window.draw(vertices.data(), vertices.size(), sf::Quads);
+
         window.display();
     }
 }

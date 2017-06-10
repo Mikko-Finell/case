@@ -135,6 +135,8 @@ void Static() {
     // initialize graphics threads
     std::list<GraphicsJob<Agent>> graphics_jobs;
     Pair<std::vector<sf::Vertex>> vertices;
+    vertices.current().resize(size * 4);
+    vertices.next().resize(size * 4);
     for (auto i = 0; i < threads; i++) {
         graphics_jobs.emplace_back(i, threads);
         auto & job = graphics_jobs.back();
@@ -150,48 +152,41 @@ void Static() {
     auto fast_forward = [&](const auto factor) {
         auto frames = std::pow(10, factor);
         std::cout << "Forwarding " << frames << " frames" << std::endl;
-        while (frames--) {
-            world.flip();
-            for (auto & job : update_jobs) {
-                job.upload(world.current(), world.next(), size, subset);
-                job.launch();
-            }
-        }
+        while (frames--)
+            update();
     };
     
     bool pause = false;
     bool running = true;
-    Timer timer;
     double dt = 0.0;
+    Timer timer;
 
     config.init(world.next());
     
     while (running) {
-        bool single_step = false;
+        bool step = false;
 
-        eventhandling(window, running, pause, single_step, framerate,
+        eventhandling(window, running, pause, step, framerate,
                       reset, fast_forward);
-
         if (pause) {
-            if (single_step)
+            if (step)
                 update();
 
             timer.reset();
+            dt = 0.0;
         }
         else {
-            const auto frame_time = 1000.0/framerate;
-            auto max_iter = 100;
-
+            const auto frame_time = 1000.0 / framerate;
             dt += timer.reset();
-            while (dt > frame_time && max_iter--) {
-                update();
+            if (dt > frame_time) {
                 dt -= frame_time;
+
+                update();
             }
         }
 
         // draw
         vertices.flip();
-        vertices.next().resize(size * 4);
         for (auto & job : graphics_jobs) {
             job.upload(world.current(), vertices.next().data(), size);
             job.launch();
