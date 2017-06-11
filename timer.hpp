@@ -38,9 +38,8 @@ public:
     }
 
     inline double dt() const {
-        const auto precision = 1000;
         const auto us = duration_cast<microseconds>(clock::now() - start_time);
-        return std::round(us.count() / 1000.0 * precision) / precision;
+        return us.count() / 1000.0;
     }
 
     inline double duration() const {
