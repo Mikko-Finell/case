@@ -14,8 +14,6 @@
 
 namespace CASE {
 
-static constexpr char endl = '\n';
-
 class Log {
     std::thread thread;
     std::mutex mutex;
@@ -24,16 +22,15 @@ class Log {
 
 public:
     Log(const std::string & filename) {
+        using namespace std::chrono;
+        const auto time = system_clock::to_time_t(system_clock::now());
+        stream << "# " << std::ctime(&time);
+
         thread = std::thread{[this, filename]
         {
-            using namespace std::chrono;
-
             std::ofstream file{filename, std::ios::out};
             if (file.is_open() == false)
                 throw std::runtime_error{"unable to open \"" + filename + "\""};
-
-            const auto time = system_clock::to_time_t(system_clock::now());
-            stream << "# " << std::ctime(&time);
 
             while (running) {
                 std::this_thread::sleep_for(milliseconds(200));
@@ -44,12 +41,9 @@ public:
                 if (file.fail())
                     throw std::runtime_error{"file failbit"};
 
-                mutex.lock();
-                const auto str = stream.str();
+                std::lock_guard<std::mutex> lock{mutex};
+                file << stream.str();
                 stream.str("");
-                mutex.unlock();
-
-                file << str;
             }
             file.close();
         }};
@@ -63,7 +57,7 @@ public:
     template<typename T>
     Log & out(const T & t) {
         std::lock_guard<std::mutex> lock{mutex};
-        stream << t << endl;
+        stream << t << '\n';
         return *this;
     }
 
