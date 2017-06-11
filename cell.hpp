@@ -7,7 +7,6 @@
 #include <vector>
 #include <SFML/Graphics/Vertex.hpp>
 
-#include "code.hpp"
 #include "neighbors.hpp"
 #include "agent_manager.hpp"
 
@@ -50,6 +49,8 @@ public:
 
     Agent * spawn(Agent && agent) {
         assert(manager != nullptr);
+        assert(agent.z >= 0);
+        assert(agent.z < LAYERS);
 
         if (array[agent.z] != nullptr) {
             if (array[agent.z]->active())
@@ -60,8 +61,7 @@ public:
         if (pointer == nullptr)
             return nullptr;
 
-        const auto code = insert(*pointer);
-        if (code == Rejected) {
+        if (insert(*pointer) == nullptr) {
             pointer->deactivate();
             pointer = nullptr;
         }
@@ -89,12 +89,15 @@ public:
         return getlayer(layer);
     }
 
-    Code insert(Agent & agent) {
+    Agent * insert(Agent & agent) {
         const auto layer = agent.z;
+
+        assert(layer >= 0);
+        assert(layer < LAYERS);
 
         if (array[layer] != nullptr) {
             if (array[layer]->active())
-                return Rejected;
+                return nullptr;
 
             else
                 extract(layer);
@@ -107,12 +110,12 @@ public:
         array[layer]->cell = this;
         array[layer]->activate();
 
-        return OK;
+        return array[layer];
     }
 
-    Code insert(Agent * agent) {
+    Agent * insert(Agent * agent) {
         if (agent == nullptr)
-            return Rejected;
+            return nullptr;
         else
             return insert(*agent);
     }

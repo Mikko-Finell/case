@@ -6,7 +6,6 @@
 
 #include <cassert>
 
-#include "code.hpp"
 #include "index.hpp"
 #include "agent_manager.hpp"
 
