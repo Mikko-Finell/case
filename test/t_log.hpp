@@ -1,5 +1,6 @@
 #include <cpptest.hpp>
 #include "../log.hpp"
+#include "../timer.hpp"
 
 namespace t_log {
 
@@ -11,7 +12,7 @@ bool basic() {
 
 bool stream() {
     CASE::Log log{"test2.data"};
-    log << "this is another test" << CASE::endl;
+    log << "this is another test" << '\n';
     return false;
 }
 
@@ -22,10 +23,18 @@ bool streams() {
 }
 
 void run() {
+    CASE::Log log{"test.dat"};
+    CASE::Timer timer;
+    for (auto i = 0; i < 1000 * 1000; i++)
+        log.out(i * i);
+    std::cout << timer.dt() << std::endl;
+
+    /*
     cpptest::Module test{"log"};
     test.fn("basic", basic);
     test.fn("stream", stream);
     test.fn("several streams", streams);
+    */
 }
 
 }
