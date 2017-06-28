@@ -5,14 +5,9 @@
 #define CASE_INDEX
 
 #include <cassert>
+#include "helper.hpp"
 
 namespace CASE {
-
-// n mod size with floored division, so as to wrap backwards around negative n
-inline int wrap(const int n, const int size) {
-    assert(size > 0);
-    return ((n % size) + size) % size;
-}
 
 // row-major major matrix index 
 inline int index(const int x, const int y, const int size) {
