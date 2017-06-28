@@ -10,10 +10,11 @@
 
 #define COLUMNS 256
 #define ROWS 256
-#define CELL_SIZE 5
+#define CELL_SIZE 4
 #define ANT_LAYER 0
 #define PHEROMONE_LAYER 1
-#define HP_MAX 25
+#define HP_MAX 50
+#define HP_INIT 25
 
 enum Type { Ant, Pheromone };
 
@@ -22,7 +23,7 @@ struct Vector { int x=0, y=0; };
 namespace Ants {
 class Agent {
     bool alive = false;
-    int hp = HP_MAX;
+    int hp = HP_INIT;
     Type type;
     int dir = 0;
 
@@ -49,7 +50,7 @@ int left(const int dir) { return turn<-1>(dir); }
 int right(const int dir) { return turn<1>(dir); }
 
 int steer(const int dir, bool bias_l, bool bias_c, bool bias_r) {
-    constexpr int stdev = 5;
+    constexpr int stdev = 1;
     constexpr int max = 100;
     constexpr int avg = max / 2;
     static CASE::Gaussian<avg, stdev> rand;
