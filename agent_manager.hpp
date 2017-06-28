@@ -56,6 +56,7 @@ public:
     }
 
     ~AgentManager() {
+        shuffle.terminate();
         if (agents != nullptr)
             delete [] agents;
         agents = nullptr;
