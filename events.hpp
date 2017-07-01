@@ -4,6 +4,7 @@
 #ifndef CASE_EVENTS
 #define CASE_EVENTS
 
+#include <functional>
 #include <SFML/Graphics.hpp>
 
 namespace CASE {
