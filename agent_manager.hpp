@@ -44,11 +44,12 @@ public:
     }
 
     void update() {
+#ifndef CASE_DETERMINISTIC
         indices.flip();
         shuffle.wait();
         shuffle.upload(&indices.next());
         shuffle.launch();
-
+#endif
         for (const auto i : indices.current()) {
             if (agents[i].active())
                 agents[i].update();
