@@ -4,8 +4,8 @@
 #include "../grid.hpp"
 #include "../static_sim.hpp"
 
-#define COLUMNS 256
-#define ROWS 256
+#define COLUMNS 512
+#define ROWS 512
 #define CELL_SIZE 2
 
 class Life {
@@ -63,7 +63,7 @@ struct GameOfLife {
     static constexpr int cell_size = CELL_SIZE;
     static constexpr int subset = columns * rows;
     double framerate = 60.0;
-    const char* title = "Game of Life";
+    const char* title = "Conways Life";
     const sf::Color bgcolor = sf::Color::White;
 
     void init(Life * agents) {
@@ -75,13 +75,35 @@ struct GameOfLife {
                 agent.index = index++;
             }
         }
-        CASE::Gaussian<(columns+rows)/4, 25> random;
-        for (auto i = 0; i < 2500; i++) {
-            const auto x = CASE::wrap(random(), columns),
-                       y = CASE::wrap(random(), rows);
-
-            auto & agent = agents[CASE::index(x, y, columns)];
-            agent.live = true;
+        /* Small exploder pattern */
+        /*   .
+         *  ...
+         *  . .
+         *   .
+        const auto x = COLUMNS/2, y = ROWS/2;
+        agents[CASE::index(x, y, columns)].live = true;
+        agents[CASE::index(x-1, y, columns)].live = true;
+        agents[CASE::index(x, y-1, columns)].live = true;
+        agents[CASE::index(x+1, y, columns)].live = true;
+        agents[CASE::index(x-1, y+1, columns)].live = true;
+        agents[CASE::index(x, y+2, columns)].live = true;
+        agents[CASE::index(x+1, y+1, columns)].live = true;
+         */
+        // Get center cell coordinates
+        // for each cell, if cell is within some distance of center
+        // then set cell live = true
+        const auto cx = COLUMNS/2;
+        const auto cy = ROWS/2;
+        const auto distance = (COLUMNS+ROWS)/4;
+        static CASE::Uniform<0, 100> dist;
+        for (auto y = 0; y < columns; y++) {
+            for (auto x = 0; x < rows; x++) {
+                auto & agent = agents[CASE::index(x, y, columns)];
+                const auto dx = abs(cx-x), dy = abs(cy-y);
+                const auto d = sqrt(dx*dx + dy*dy);
+                if (d <= distance && (dist() > 50))
+                    agent.live = true;
+            }
         }
     }
 

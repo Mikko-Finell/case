@@ -9,11 +9,13 @@
 #define ROWS 400
 #define CELL_SIZE 2
 
+int RULESET = 0;
+
 class Wolfram {
     int x, y;
 
     bool parent_is_active() const {
-        auto neighbors = CASE::CMemAdjacent<Wolfram>{this, COLUMNS, ROWS};
+        auto neighbors = CASE::CAdjacent<Wolfram>{this, COLUMNS, ROWS};
         return neighbors(0, -1).active;
     }
 
@@ -28,7 +30,7 @@ public:
     }
 
     void update(Wolfram & next) const {
-        auto neighbors = CASE::CMemAdjacent<Wolfram>{this, COLUMNS, ROWS};
+        auto neighbors = CASE::CAdjacent<Wolfram>{this, COLUMNS, ROWS};
 
         int pattern = 0b000;
         if (neighbors(-1, -1).live)
@@ -38,6 +40,16 @@ public:
         if (neighbors(1, -1).live)
             pattern = pattern | 0b001;
 
+        static const int rules[7][8] = {
+            { 0, 1, 1, 1, 1, 0, 0, 0 },
+            { 0, 1, 0, 1, 1, 0, 1, 0 },
+            { 1, 0, 0, 1, 0, 1, 1, 0 },
+            { 0, 1, 0, 1, 0, 1, 1, 0 },
+            { 0, 1, 1, 1, 0, 1, 1, 0 },
+            { 0, 1, 1, 1, 1, 1, 1, 0 },
+            { 0, 1, 1, 0, 1, 0, 0, 1 }
+        };
+        /*
         static const int r30 [8] = { 0, 1, 1, 1, 1, 0, 0, 0 };
         static const int r90 [8] = { 0, 1, 0, 1, 1, 0, 1, 0 };
         static const int r105[8] = { 1, 0, 0, 1, 0, 1, 1, 0 };
@@ -45,12 +57,12 @@ public:
         static const int r110[8] = { 0, 1, 1, 1, 0, 1, 1, 0 };
         static const int r126[8] = { 0, 1, 1, 1, 1, 1, 1, 0 };
         static const int r150[8] = { 0, 1, 1, 0, 1, 0, 0, 1 };
-
+        */
         if (active) {
             next.active = false;
             next.age++;
 
-            if (r106[pattern])
+            if (rules[RULESET][pattern])
                 next.live = true;
             else
                 next.live = false;
@@ -107,7 +119,17 @@ struct Wolframs_Rules {
         }
     };
 
-    void preprocessing() {}
+    void postprocessing(Wolfram * agents) {
+        static bool pressed = false;
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::PageDown)) {
+            if (!pressed) {
+                RULESET = (RULESET + 1) % 7;
+                std::cout << RULESET << std::endl;
+                pressed = true;
+            }
+        }
+        else pressed = false;
+    }
 };
 
 int main() {

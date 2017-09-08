@@ -7,8 +7,8 @@
 #include "../cell.hpp"
 #include "../dynamic_sim.hpp"
 
-#define COLUMNS 256
-#define ROWS 256
+#define COLUMNS 512
+#define ROWS 512
 #define CELL_SIZE 2
 
 enum Type { Fox, Rabbit, Grass, None };
@@ -158,7 +158,7 @@ struct Config {
     static constexpr int cell_size = CELL_SIZE;
     static constexpr int subset = columns * rows * Cell::depth;
 
-    const double framerate = 20;
+    const double framerate = 120;
     const char* title = "Foxes and Rabbits";
     const sf::Color bgcolor{0,0,0};
 

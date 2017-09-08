@@ -4,8 +4,8 @@
 #include "../grid.hpp"
 #include "../static_sim.hpp"
 
-#define COLUMNS 256
-#define ROWS 256
+#define COLUMNS 500
+#define ROWS 500
 #define CELL_SIZE 2
 
 class Brian {
