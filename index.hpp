@@ -20,7 +20,7 @@ template<class T>
 inline T & bda(T * t, int i, int c, int r, int x, int y) {
     return *(t+(((i%c+x)%c)+c)%c+((((i/c+y)%r)+r)%r)*c-i);
 }
-} // __impl
+} // _impl
 
 } // CASE
 
