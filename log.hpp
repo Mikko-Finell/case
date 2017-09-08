@@ -32,18 +32,23 @@ public:
             if (file.is_open() == false)
                 throw std::runtime_error{"unable to open \"" + filename + "\""};
 
+            std::string buffer = "";
             while (running) {
                 std::this_thread::sleep_for(milliseconds(200));
 
                 if (stream.fail())
                     throw std::runtime_error{"stream failbit"};
 
-                if (file.fail())
+                else if (file.fail())
                     throw std::runtime_error{"file failbit"};
 
-                std::lock_guard<std::mutex> lock{mutex};
-                file << stream.str();
-                stream.str("");
+                else {
+                    std::lock_guard<std::mutex> lock{mutex};
+                    buffer = stream.str();
+                    stream.str("");
+                }
+                file << buffer;
+                buffer = "";
             }
             file.close();
         }};
