@@ -18,72 +18,32 @@
 #include "pair.hpp"
 #include "timer.hpp"
 #include "events.hpp"
+#include "log.hpp"
 
 namespace CASE {
 
 template <class T>
-class GraphicsJob : public Job {
-
-    const T * objects = nullptr;
-    sf::Vertex * vertices = nullptr;
-    int array_size = 0;
-
-    void execute() override {
-        constexpr int VS_PER_OBJ = 4;
-        for (auto i = nth; i < array_size; i += n_threads)
-            objects[i].draw(vertices + i * VS_PER_OBJ);
-    }
-
-public:
-    using Job::Job;
-
-    void upload(const T * objs, sf::Vertex * vs, const int count) {
-        wait();
-        objects = objs;
-        vertices = vs;
-        array_size = count;
-    }
-};
-
-template <class T>
 class UpdateJob : public Job {
     Uniform<> random;
-    std::vector<int> indices;
     T * current = nullptr;
     T * next = nullptr;
     int array_size = 0;
-    int subset = 0;
 
     void execute() override {
-        indices.clear();
         for (auto i = nth; i < array_size; i += n_threads) {
-            indices.push_back(i);
             next[i] = current[i];
-        }
-        if (subset < array_size) {
-            random.shuffle(indices);
-
-            for (auto i = nth; i < subset; i += n_threads) {
-                const auto index = indices.back();
-                indices.pop_back();
-                current[index].update(next[index]);
-            }
-        }
-        else {
-            for (auto i = nth; i < array_size; i += n_threads)
-                current[i].update(next[i]);
+            current[i].update(next[i]);
         }
     }
 
 public:
     using Job::Job;
 
-    void upload(T * first, T * second, const int count, const int ss) {
+    void upload(T * first, T * second, const int count) {
         wait();
         current = first;
         next = second;
         array_size = count;
-        subset = ss;
     }
 };
 
@@ -94,7 +54,6 @@ void Static() {
     assert(std::is_trivially_copyable<Agent>::value == true);
 
     const auto size      = config.columns * config.rows;
-    const auto subset    = config.subset;
     auto agents          = new Agent[size * 2];
     auto world           = Pair<Agent *>{agents, agents + size};
     auto framerate       = config.framerate;
@@ -121,39 +80,32 @@ void Static() {
         job.thread = std::thread{[&job]{ job.run(); }};
     }
 
-    auto update = [&update_jobs, &config, &world]() {
+    auto update = [&]() {
         for (auto & job : update_jobs)
             job.wait();
         config.postprocessing(world.current());
         world.flip();
         for (auto & job : update_jobs) {
-            job.upload(world.current(), world.next(), size, subset);
+            job.upload(world.current(), world.next(), size);
             job.launch();
         }
     };
 
-    // initialize graphics threads
-    std::list<GraphicsJob<Agent>> graphics_jobs;
-    Pair<std::vector<sf::Vertex>> vertices;
-    vertices.current().resize(size * 4);
-    vertices.next().resize(size * 4);
-    for (auto i = 0; i < threads; i++) {
-        graphics_jobs.emplace_back(i, threads);
-        auto & job = graphics_jobs.back();
-        job.thread = std::thread{[&job]{ job.run(); }};
-    }
+    std::vector<sf::Vertex> vertices;
+    vertices.resize(size * 4);
 
     auto reset = [&]() {
         for (auto & job : update_jobs) job.wait();
-        for (auto & job : graphics_jobs) job.wait();
         config.init(world.next());
     };
 
     auto fast_forward = [&](const auto factor) {
         auto frames = std::pow(10, factor);
         std::cout << "Forwarding " << frames << " frames" << std::endl;
+        static Timer timer; timer.start();
         while (frames--)
             update();
+        std::cout << timer.reset() << "ms\n";
     };
     
     bool pause = false;
@@ -161,8 +113,8 @@ void Static() {
     double dt = 0.0;
     Timer timer;
 
-    config.init(world.next());
-    
+    reset();
+
     while (running) {
         bool step = false;
 
@@ -185,25 +137,19 @@ void Static() {
             }
         }
 
-        // draw
-        vertices.flip();
-        for (auto & job : graphics_jobs) {
-            job.upload(world.current(), vertices.next().data(), size);
-            job.launch();
-        }
-
+        // render
+        auto & current_agents = world.current();
+        for (auto i = 0; i < size; i++)
+            current_agents[i].draw(&vertices[0] + i * 4);
+        
         // display
         window.clear(config.bgcolor);
-        auto & current = vertices.current();
-        window.draw(current.data(), current.size(), sf::Quads);
+        window.draw(&vertices[0], vertices.size(), sf::Quads);
         window.display();
     }
 
     // terminate update threads
     for (auto & job : update_jobs)
-        job.terminate();
-
-    for (auto & job : graphics_jobs)
         job.terminate();
 
     delete [] agents;
