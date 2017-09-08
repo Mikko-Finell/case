@@ -5,11 +5,9 @@
 #define CASE_STATIC_SIM
 
 #include <cassert>
-
 #include <iostream>
 #include <list>
 #include <vector>
-#include <algorithm>
 
 #include <SFML/Graphics.hpp>
 

@@ -4,6 +4,7 @@
 #ifndef CASE_SIM
 #define CASE_SIM
 
+#include <iostream>
 #include <SFML/Graphics.hpp>
 
 #include "grid.hpp"
@@ -89,7 +90,6 @@ void Dynamic() {
             grid.cells[i].draw(vertices);
 
         window.draw(vertices.data(), vertices.size(), sf::Quads);
-
         window.display();
     }
 }
