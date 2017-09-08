@@ -5,13 +5,14 @@
 #include "../random.hpp"
 #include "../grid.hpp"
 #include "../cell.hpp"
-#include "../dynamic_sim.hpp"
+#include "../static_sim.hpp"
 
-#define COLUMNS 300
-#define ROWS 300
-#define CELL_SIZE 3
+#define COLUMNS 512
+#define ROWS 512
+#define CELL_SIZE 2
 
-int mfactor = 5;
+int mfactor = 10;
+int start_r = 255, start_g = 255, start_b = 255;
 
 template <int MIN, int MAX>
 int clamp(const int value) {
@@ -19,79 +20,108 @@ int clamp(const int value) {
 }
 
 class Bacteria {
+    int x, y;
+    int r = 255, g = 255, b = 255;
     bool alive = false;
-    int r = 0, g = 0, b = 0;
 
 public:
-    using Cell = CASE::ZCell<Bacteria, 2>;
-    int z = 0;
-    Cell * cell = nullptr;
+    int index = 0;
 
-    Bacteria();
-    Bacteria(const Bacteria * parent);
-    void update();
-    void draw(const int, const int, std::vector<sf::Vertex> & vertices) const;
-    bool active() const { return alive; }
-    void activate() { alive = true;; }
-    void deactivate() { alive = false;; }
+    Bacteria(int _x = 0, int _y = 0) : x(CELL_SIZE * _x), y(CELL_SIZE * _y)
+    {
+        deactivate();
+    }
+    void mutate(const Bacteria & parent) {
+        static CASE::Uniform<> rand;
+        r = clamp<0,255>(parent.r + rand(-mfactor, mfactor));
+        g = clamp<0,255>(parent.g + rand());
+        b = clamp<0,255>(parent.b + rand());
+    }
+    void setrgb(const int _r, const int _g, const int _b) {
+        r = _r; g = _g; b = _b;
+    }
+    void draw(sf::Vertex * vs) const {
+        CASE::quad(x, y, CELL_SIZE, CELL_SIZE, r,g,b, vs);
+    }
+    inline bool active() const { return alive; }
+    inline void activate() { alive = true; }
+    inline void deactivate() { alive = false; }
+    void update(Bacteria & next) const;
+
+    CASE::Uniform<0, 7> random;
 };
 
-Bacteria::Bacteria() {
-    static CASE::Uniform<0, 255> rcolor;
-    r = rcolor(); g = rcolor(); b = rcolor();
-}
+void Bacteria::update(Bacteria & self) const {
+    if (active())
+        return;
 
-Bacteria::Bacteria(const Bacteria * parent) {
-    static CASE::Uniform<> rand{-mfactor, mfactor};
-    r = clamp<0,255>(parent->r + rand());
-    g = clamp<0,255>(parent->g + rand());
-    b = clamp<0,255>(parent->b + rand());
-}
+    static const int dirs[][2] = {
+        {-1,-1}, { 0,-1}, { 1,-1},
+        {-1, 0},          { 1, 0},
+        {-1, 1}, { 0, 1}, { 1, 1}
+    };
 
-void Bacteria::update() {
-    static CASE::Uniform<-1, 1> uv;
-    auto neighbors = cell->neighbors();
-    neighbors(uv(), uv()).spawn(Bacteria{this});
-}
+    const auto i = self.random();
+    const auto x = dirs[i][0], y = dirs[i][1];
 
-void Bacteria::draw(const int x, const int y, std::vector<sf::Vertex> & vs) const {
-    const auto size = vs.size();
-    vs.resize(size + 4);
-    CASE::quad(x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE, r,g,b, &vs[size]);
+    auto neighbors = CASE::CAdjacent<Bacteria>{this};
+    auto & neighbor = neighbors(x, y);
+    if (neighbor.active()) {
+        self.mutate(neighbor);
+        self.activate();
+    }
 }
 
 struct Config {
     using Agent = Bacteria;
-    using Cell = Agent::Cell;
-    using Grid = CASE::Grid<Cell>;
 
     static constexpr int columns = COLUMNS;
     static constexpr int rows = ROWS;
+    static constexpr int subset = columns * rows;
     static constexpr int cell_size = CELL_SIZE;
-    static constexpr int subset = columns * rows * Cell::depth;
 
-    const double framerate = 60;
+    const double framerate = 15;
     const char* title = "Color Evolution";
     const sf::Color bgcolor{255, 255, 255};
 
-    void init(Grid & grid, CASE::AgentManager<Agent> & manager) {
-        grid.clear();
-        manager.clear();
-        grid(columns/2,rows/2).spawn(Agent{});
+    void init(Agent * agents) {
+        CASE::Uniform<1, 100> rand;
+        int index = 0;
+        for (auto y = 0; y < ROWS; y++) {
+            for (auto x = 0; x < COLUMNS; x++) {
+                auto & agent = agents[CASE::index(x, y, COLUMNS)];
+                agent = Bacteria{x, y};
+                agent.index = index++;
+            }
+        }
+        auto & agent = agents[CASE::index(columns/2, rows/2, COLUMNS)];
+
+        start_r = rand(0, 255);
+        start_g = rand();
+        start_b = rand();
+
+        agent.setrgb(start_r, start_g, start_b);
+        agent.activate();
     }
 
-    void postprocessing(Grid & /*grid*/) {
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Insert)) {
+    void postprocessing(Agent *) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::PageUp)) {
             mfactor = clamp<0,100>(mfactor + 1);
-            std::cout << "M Factor  " << mfactor << std::endl;
+            std::cout << "Mutation Factor  " << mfactor << std::endl;
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Delete)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::PageDown)) {
             mfactor = clamp<0,100>(mfactor - 1);
-            std::cout << "M Factor  " << mfactor << std::endl;
+            std::cout << "Mutation Factor  " << mfactor << std::endl;
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::B)) {
+            start_r = 0; start_g = 0; start_b = 0;
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
+            start_r = 255; start_g = 255; start_b = 255;
         }
     }
 };
 
 int main() {
-    CASE::Dynamic<Config>();
+    CASE::Static<Config>();
 }

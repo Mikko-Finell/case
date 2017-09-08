@@ -4,9 +4,9 @@
 #include "../grid.hpp"
 #include "../static_sim.hpp"
 
-#define COLUMNS 256
-#define ROWS 256
-#define CELL_SIZE 3
+#define COLUMNS 512
+#define ROWS 512
+#define CELL_SIZE 2
 
 int rng(const int low, const int high) {
     static CASE::Uniform<> rand;
@@ -43,7 +43,7 @@ public:
     }
 
     void update(Automata & next) const {
-        auto neighbors = CASE::CMemAdjacent<Automata>{this, COLUMNS, ROWS};
+        auto neighbors = CASE::CAdjacent<Automata>{this, COLUMNS, ROWS};
         // count neighbors colors
         // set own to be same as majority
         Color colors[6] = {0,1,2,3,4,5};
@@ -107,7 +107,7 @@ struct ColorSwitchers {
         }
     }
 
-    void preprocessing() {
+    void postprocessing(Automata *) {
     }
 };
 
