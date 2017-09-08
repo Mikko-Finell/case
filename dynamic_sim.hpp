@@ -38,7 +38,6 @@ void Dynamic() {
     Grid<Cell> grid{config.columns, config.rows, manager};
     std::vector<sf::Vertex> vertices;
 
-
     auto reset = [&config, &grid, &manager]()
     {
         config.init(grid, manager);
@@ -48,8 +47,10 @@ void Dynamic() {
     auto fast_forward = [&](const auto factor) {
         auto frames = std::pow(10, factor);
         std::cout << "Forwarding " << frames << " frames" << std::endl;
+        static Timer timer; timer.start();
         while (frames--)
             manager.update();
+        std::cout << timer.reset() << "ms\n";
     };
 
     bool pause = false;
@@ -86,6 +87,7 @@ void Dynamic() {
 
         for (auto i = 0; i < grid.cell_count(); i++)
             grid.cells[i].draw(vertices);
+
         window.draw(vertices.data(), vertices.size(), sf::Quads);
 
         window.display();
