@@ -25,39 +25,25 @@ public:
         auto count = 0;
         for (const auto y : range) {
             for (const auto x : range) {
-                if (x == 0 && y == 0)
-                    continue;
-                if (neighbors(x, y).live)
-                    count++;
+                if (x == 0 && y == 0) continue;
+                if (neighbors(x, y).live) count++;
             }
         }
-        if (live) {
-            if (count < 2)
-                next.live = false;
-
-            if (count > 3)
-                next.live = false;
-        }
-        else {
-            if (count == 3)
-                next.live = true;
-        }
+        if (live && (count < 2 || count > 3)) next.live = false;
+        else if (count == 3) next.live = true;
     }
 
     void draw(sf::Vertex * vs) const {
         static constexpr int pad = 0;
         if (live)
-            CASE::quad(x, y, CELL_SIZE-pad, CELL_SIZE-pad,
-                    0, 0, 0, vs);
+            CASE::quad(x, y, CELL_SIZE-pad, CELL_SIZE-pad, 0, 0, 0, vs);
         else
-            CASE::quad(x, y, CELL_SIZE-pad, CELL_SIZE-pad,
-                    255, 255, 255, vs);
+            CASE::quad(x, y, CELL_SIZE-pad, CELL_SIZE-pad, 255, 255, 255, vs);
     }
 };
 
 struct GameOfLife {
     using Agent = Life;
-
     static constexpr int columns = COLUMNS;
     static constexpr int rows = ROWS;
     static constexpr int cell_size = CELL_SIZE;
@@ -75,23 +61,6 @@ struct GameOfLife {
                 agent.index = index++;
             }
         }
-        /* Small exploder pattern */
-        /*   .
-         *  ...
-         *  . .
-         *   .
-        const auto x = COLUMNS/2, y = ROWS/2;
-        agents[CASE::index(x, y, columns)].live = true;
-        agents[CASE::index(x-1, y, columns)].live = true;
-        agents[CASE::index(x, y-1, columns)].live = true;
-        agents[CASE::index(x+1, y, columns)].live = true;
-        agents[CASE::index(x-1, y+1, columns)].live = true;
-        agents[CASE::index(x, y+2, columns)].live = true;
-        agents[CASE::index(x+1, y+1, columns)].live = true;
-         */
-        // Get center cell coordinates
-        // for each cell, if cell is within some distance of center
-        // then set cell live = true
         const auto cx = COLUMNS/2;
         const auto cy = ROWS/2;
         const auto distance = (COLUMNS+ROWS)/4;

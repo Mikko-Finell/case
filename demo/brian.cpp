@@ -34,38 +34,29 @@ public:
                     count++;
             }
         }
-        if (state == Dead) {
-            if (count == 2)
-                next.state = On;
-        }
+        if (state == Dead && count == 2)
+            next.state = On;
         else if (state == On)
             next.state = Dying;
-
         else if (state == Dying)
             next.state = Dead;
     }
 
     void draw(sf::Vertex * vs) const {
-        static constexpr int pad = 0;
         if (state == On)
-            CASE::quad(x, y, CELL_SIZE-pad, CELL_SIZE-pad,
-                    0, 0, 0, vs);
+            CASE::quad(x, y, CELL_SIZE, CELL_SIZE, 0, 0, 0, vs);
         else if (state == Dying)
-            CASE::quad(x, y, CELL_SIZE-pad, CELL_SIZE-pad,
-                    100, 100, 255, vs);
+            CASE::quad(x, y, CELL_SIZE, CELL_SIZE, 100, 100, 255, vs);
         else
-            CASE::quad(x, y, CELL_SIZE-pad, CELL_SIZE-pad,
-                    255, 255, 255, vs);
+            CASE::quad(x, y, CELL_SIZE, CELL_SIZE, 255, 255, 255, vs);
     }
 };
 
 struct BriansBrain {
     using Agent = Brian;
-
     static constexpr int columns = COLUMNS;
     static constexpr int rows = ROWS;
     static constexpr int cell_size = CELL_SIZE;
-    static constexpr int subset = columns * rows;
     double framerate = 60.0;
     const char* title = "Brians Brain";
     const sf::Color bgcolor = sf::Color::White;
@@ -83,7 +74,6 @@ struct BriansBrain {
         for (auto i = 0; i < 250; i++) {
             const auto x = CASE::wrap(random(), columns),
                        y = CASE::wrap(random(), rows);
-
             auto & agent = agents[CASE::index(x, y, columns)];
             agent.activate();
         }

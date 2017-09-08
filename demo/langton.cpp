@@ -1,4 +1,3 @@
-#include <iostream>
 #include <cmath>
 
 #include "../quad.hpp"
@@ -15,7 +14,6 @@
 #define ANT_LAYER 0
 
 constexpr double pi() { return std::atan(1) * 4; }
-
 enum Type { Ant, Cell };
 
 namespace Langton {
@@ -31,7 +29,6 @@ public:
     Agent(Type type = Type::Cell);
     void update();
     void draw(const int, const int, std::vector<sf::Vertex> & vertices) const;
-
     bool active() const { return alive; }
     void activate() { alive = true; }
     void deactivate() { alive = false; }
@@ -60,10 +57,8 @@ void Agent::update() {
             cell->deactivate();
             angle += turn_amt;
         }
-        // move forward
         neighbors(
-            std::round(std::cos(angle * pi() / 180)),
-            std::round(std::sin(angle * pi() / 180))
+            std::cos(angle * pi() / 180), std::sin(angle * pi() / 180)
         ).insert(this);
     }
 }
@@ -86,26 +81,17 @@ struct Config {
     static constexpr int rows = ROWS;
     static constexpr int cell_size = CELL_SIZE;
     static constexpr int subset = columns * rows * Cell::depth;
-
-    const double framerate = 20;
+    const double framerate = 60;
     const char* title = "Langtons Ant";
     const sf::Color bgcolor{255, 255, 255};
 
     void init(Grid & grid, CASE::AgentManager<Agent> & manager) {
         grid.clear();
         manager.clear();
-
-        //CASE::Uniform<0, columns - 1> x;
-        //CASE::Uniform<0, rows - 1> y;
-
-        //for (auto i = 0; i < 6; i++)
-            //grid(x(), y()).spawn(Agent{Ant});
-
         grid(COLUMNS/2, ROWS/2).spawn(Agent{Ant});
     }
 
-    void postprocessing(Grid & /*grid*/) {
-    }
+    void postprocessing(Grid & /*grid*/) {}
 };
 
 int main() {

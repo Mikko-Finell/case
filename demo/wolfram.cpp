@@ -5,8 +5,8 @@
 #include "../static_sim.hpp"
 #include "../random.hpp"
 
-#define COLUMNS 700
-#define ROWS 400
+#define COLUMNS 300
+#define ROWS 300
 #define CELL_SIZE 2
 
 int RULESET = 0;
@@ -14,15 +14,9 @@ int RULESET = 0;
 class Wolfram {
     int x, y;
 
-    bool parent_is_active() const {
-        auto neighbors = CASE::CAdjacent<Wolfram>{this, COLUMNS, ROWS};
-        return neighbors(0, -1).active;
-    }
-
 public:
-    int age = 0;
     bool live = false;
-    bool active = false;
+    bool scanline = false;
     int index = 0;
 
     Wolfram(int _x = 0, int _y = 0) : x(CELL_SIZE * _x), y(CELL_SIZE * _y)
@@ -31,7 +25,6 @@ public:
 
     void update(Wolfram & next) const {
         auto neighbors = CASE::CAdjacent<Wolfram>{this, COLUMNS, ROWS};
-
         int pattern = 0b000;
         if (neighbors(-1, -1).live)
             pattern = pattern | 0b100;
@@ -39,7 +32,6 @@ public:
             pattern = pattern | 0b010;
         if (neighbors(1, -1).live)
             pattern = pattern | 0b001;
-
         static const int rules[7][8] = {
             { 0, 1, 1, 1, 1, 0, 0, 0 },
             { 0, 1, 0, 1, 1, 0, 1, 0 },
@@ -49,46 +41,26 @@ public:
             { 0, 1, 1, 1, 1, 1, 1, 0 },
             { 0, 1, 1, 0, 1, 0, 0, 1 }
         };
-        /*
-        static const int r30 [8] = { 0, 1, 1, 1, 1, 0, 0, 0 };
-        static const int r90 [8] = { 0, 1, 0, 1, 1, 0, 1, 0 };
-        static const int r105[8] = { 1, 0, 0, 1, 0, 1, 1, 0 };
-        static const int r106[8] = { 0, 1, 0, 1, 0, 1, 1, 0 };
-        static const int r110[8] = { 0, 1, 1, 1, 0, 1, 1, 0 };
-        static const int r126[8] = { 0, 1, 1, 1, 1, 1, 1, 0 };
-        static const int r150[8] = { 0, 1, 1, 0, 1, 0, 0, 1 };
-        */
-        if (active) {
-            next.active = false;
-            next.age++;
-
-            if (rules[RULESET][pattern])
-                next.live = true;
-            else
-                next.live = false;
+        if (scanline) {
+            next.scanline = false;
+            next.live = rules[RULESET][pattern];
         }
-        else if (parent_is_active())
-            next.active = true;
+        else if (neighbors(0, -1).scanline)
+            next.scanline = true;
     }
 
     void draw(sf::Vertex * vs) const {
         if (live)
-            CASE::quad(x, y, CELL_SIZE, CELL_SIZE,
-                    0, 0, 0, vs);
-
-        else if (active)
-            CASE::quad(x, y, CELL_SIZE, CELL_SIZE,
-                    255, 255, 100, vs);
-
+            CASE::quad(x, y, CELL_SIZE, CELL_SIZE, 0, 0, 0, vs);
+        else if (scanline)
+            CASE::quad(x, y, CELL_SIZE, CELL_SIZE, 255, 255, 100, vs);
         else
-            CASE::quad(x, y, CELL_SIZE, CELL_SIZE,
-                    255, 255, 255, vs);
+            CASE::quad(x, y, CELL_SIZE, CELL_SIZE, 255, 255, 255, vs);
     }
 };
 
 struct Wolframs_Rules {
     using Agent = Wolfram;
-
     const int columns = COLUMNS;
     const int cell_size = CELL_SIZE;
     const int rows = ROWS;
@@ -109,7 +81,7 @@ struct Wolframs_Rules {
         }
         for (auto x = 0; x < COLUMNS; x++) {
             auto & agent = agents[CASE::index(x, 1, COLUMNS)];
-            agent.active = true;
+            agent.scanline = true;
         }
 
         for (auto x = 0; x < COLUMNS; x++) {

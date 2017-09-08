@@ -40,11 +40,9 @@ public:
     void draw(sf::Vertex * vs) const {
         static constexpr int pad = 1;
         if (live)
-            CASE::quad(x, y, CELL_SIZE-pad, CELL_SIZE-pad,
-                    0, 0, 0, vs);
+            CASE::quad(x, y, CELL_SIZE-pad, CELL_SIZE-pad, 0, 0, 0, vs);
         else
-            CASE::quad(x, y, CELL_SIZE-pad, CELL_SIZE-pad,
-                    255, 255, 255, vs);
+            CASE::quad(x, y, CELL_SIZE-pad, CELL_SIZE-pad, 255, 255, 255, vs);
     }
 };
 

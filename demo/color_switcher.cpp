@@ -8,23 +8,8 @@
 #define ROWS 512
 #define CELL_SIZE 2
 
-int rng(const int low, const int high) {
-    static CASE::Uniform<> rand;
-    return rand(low, high);
-}
-
-static constexpr int color[6][3] = {
-    {255,0,0},   // red
-    {0,255,0},   // green
-    {0,0,255},   // blue
-    {255,255,0}, // yellow
-    {255,0,255}, // purple
-    {0,255,255}, // cyan
-};
-
 struct Color {
-    int index;
-    int commonness = 0;
+    int index, commonness = 0;
     Color(int i) : index(i) {}
     bool operator<(const Color & other) const {
         return commonness < other.commonness;
@@ -33,9 +18,9 @@ struct Color {
 
 class Automata {
     int x, y;
-    int color_index;
 
 public:
+    int color_index;
     int index = 0;
 
     Automata(int _x = 0, int _y = 0) : x(CELL_SIZE * _x), y(CELL_SIZE * _y)
@@ -44,36 +29,27 @@ public:
 
     void update(Automata & next) const {
         auto neighbors = CASE::CAdjacent<Automata>{this, COLUMNS, ROWS};
-        // count neighbors colors
-        // set own to be same as majority
         Color colors[6] = {0,1,2,3,4,5};
-
         static const int range[3] = {-1, 0, 1};
         for (const auto Y : range) {
             for (const auto X : range) {
-                if (X==0 && Y==0)
-                    continue;
-                const int i = neighbors(X, Y).getcolor();
-                colors[i].commonness++;
+                if (X!=0 || Y!=0)
+                    colors[neighbors(X, Y).color_index].commonness++;
             }
         }
         std::sort(std::begin(colors), std::end(colors));
-        if (colors[4].commonness == colors[5].commonness)
-            next.color_index = colors[rng(4,5)].index;
+        if (colors[4].commonness == colors[5].commonness) {
+            static CASE::Uniform<4,5> rng;
+            next.color_index = colors[rng()].index;
+        }
         else
             next.color_index = colors[5].index;
     }
 
-    int getcolor() const {
-        return color_index;
-    }
-
-    void setcolor(int i) {
-        assert(i >= 0 && i < 6);
-        color_index = i;
-    }
-
     void draw(sf::Vertex * vs) const {
+        static constexpr int color[6][3] = {
+            {255,0,0},{0,255,0},{0,0,255},{255,255,0},{255,0,255},{0,255,255}
+        };
         CASE::quad(x, y, CELL_SIZE, CELL_SIZE,
                 color[color_index][0],
                 color[color_index][1],
@@ -84,7 +60,6 @@ public:
 
 struct ColorSwitchers {
     using Agent = Automata;
-
     const int columns = COLUMNS;
     const int cell_size = CELL_SIZE;
     const int rows = ROWS;
@@ -101,14 +76,12 @@ struct ColorSwitchers {
                 auto & agent = agents[CASE::index(x, y, COLUMNS)];
                 agent = Automata{x, y};
                 agent.index = index++;
-
-                agent.setcolor(random());
+                agent.color_index = random();
             }
         }
     }
 
-    void postprocessing(Automata *) {
-    }
+    void postprocessing(Automata *) {}
 };
 
 int main() {

@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "../quad.hpp"
 #include "../index.hpp"
 #include "../random.hpp"
@@ -24,30 +22,23 @@ public:
     int z = 0;
     int max_energy = 255;
     int energy = max_energy;
-
     Cell * cell = nullptr;
 
     Agent(Type type = Type::None);
     void update();
     void draw(const int, const int, std::vector<sf::Vertex> & vertices) const;
-
     bool active() const { return alive; }
     void activate() { alive = true; }
-    void deactivate() {
-        alive = false;
-    }
+    void deactivate() { alive = false; }
 };
 
 Agent::Agent(const Type _type) {
     static CASE::Uniform<0, 100> dist;
     if (_type == None) {
         auto r = dist();
-        if (r > 99)
-            type = Fox;
-        else if (r > 90)
-            type = Rabbit;
-        else
-            type = Grass;
+        if (r > 99)         type = Fox;
+        else if (r > 90)    type = Rabbit;
+        else                type = Grass;
     }
     else
         this->type = _type;
@@ -70,7 +61,6 @@ void Agent::update() {
         return deactivate();
 
     auto neighbors = cell->neighbors();
-
     static CASE::Uniform<-1, 1> uv;
     static CASE::Uniform<0, 100> rand_percent{};
 
@@ -86,7 +76,6 @@ void Agent::update() {
     }
     else if (type == Rabbit) {
         energy -= 6;
-
         bool breed = rand_percent() < 10 && energy > 0.7 * max_energy;
         if (breed) {
             auto rabbit = neighbors(uv(), uv()).spawn(Agent{Rabbit});
@@ -104,7 +93,6 @@ void Agent::update() {
     }
     else { // type is Fox
         energy -= 10;
-        
         const auto breed = rand_percent() < 5 && energy > 0.75 * max_energy;
         if (breed) {
             if (neighbors(uv(), uv()).spawn(Agent{Fox}) != nullptr)
@@ -143,8 +131,7 @@ void Agent::draw(const int x, const int y, std::vector<sf::Vertex> & vs) const {
         g = 100;
     }
 
-    CASE::quad(x * CELL_SIZE, y * CELL_SIZE,
-            CELL_SIZE, CELL_SIZE, r,g,b, &vs[i]);
+    CASE::quad(x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE, r,g,b, &vs[i]);
 }
 } // FoxesAndRabbits
 
@@ -152,29 +139,23 @@ struct Config {
     using Agent = FoxesAndRabbits::Agent;
     using Cell = Agent::Cell;
     using Grid = CASE::Grid<Cell>;
-
     static constexpr int columns = COLUMNS;
     static constexpr int rows = ROWS;
     static constexpr int cell_size = CELL_SIZE;
-    static constexpr int subset = columns * rows * Cell::depth;
-
-    const double framerate = 120;
+    const double framerate = 60;
     const char* title = "Foxes and Rabbits";
     const sf::Color bgcolor{0,0,0};
 
     void init(Grid & grid, CASE::AgentManager<Agent> & manager) {
         grid.clear();
         manager.clear();
-
         CASE::Uniform<0, columns - 1> x;
         CASE::Uniform<0, rows - 1> y;
-
-        for (auto i = 0; i < subset/2; i++)
+        for (auto i = 0; i < (COLUMNS*ROWS*Cell::depth)/2; i++)
             grid(x(), y()).spawn(Agent{None});
     }
 
-    void postprocessing(Grid & /*grid*/) {
-    }
+    void postprocessing(Grid & /*grid*/) {}
 };
 
 int main() {
