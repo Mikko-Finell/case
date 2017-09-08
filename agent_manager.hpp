@@ -14,26 +14,26 @@
 
 namespace CASE {
 
-class ShuffleJob : public Job {
-    Uniform<> random;
-    std::vector<int> * indices;
-
-    void execute() override {
-        assert(indices != nullptr);
-        random.shuffle(*indices);
-    }
-
-public:
-    void upload(std::vector<int> * i) { indices = i; }
-};
-
 template <class Agent>
 class AgentManager {
     Agent * agents = nullptr;
     const int max_agents;
     std::vector<int> inactive;
     
-    ShuffleJob shuffle;
+    class ShuffleJob : public Job {
+        Uniform<> random;
+        std::vector<int> * indices;
+
+        void execute() override {
+            assert(indices != nullptr);
+            random.shuffle(*indices);
+        }
+
+    public:
+        void upload(std::vector<int> * i) { indices = i; }
+
+    } shuffle ;
+
     Pair<std::vector<int>> indices;
     
 public:
