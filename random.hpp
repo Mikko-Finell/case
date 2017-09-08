@@ -15,7 +15,6 @@ using Engine = std::mt19937;
 
 #else
 using Engine = std::minstd_rand;
-//using Engine = std::ranlux24;
 #endif
 
 inline auto seed() {
