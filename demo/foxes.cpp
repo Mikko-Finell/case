@@ -5,9 +5,9 @@
 #include "../cell.hpp"
 #include "../dynamic_sim.hpp"
 
-#define COLUMNS 512
-#define ROWS 512
-#define CELL_SIZE 2
+#define COLUMNS 256
+#define ROWS 192
+#define CELL_SIZE 4
 
 enum Type { Fox, Rabbit, Grass, None };
 
