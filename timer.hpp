@@ -6,6 +6,8 @@
 
 #include <chrono>
 #include <cmath>
+#include <iostream>
+#include <string>
 
 namespace CASE {
 
@@ -47,6 +49,19 @@ public:
     }
 };
 
-}
+class ScopeTimer {
+    Timer timer;
+    const std::string message;
+
+public:
+    ScopeTimer(const std::string & msg) : message(msg) {
+    }
+
+    ~ScopeTimer() {
+        std::cout << message << ": " << timer.stop() << "ms\n";
+    }
+};
+
+} // CASE
 
 #endif
