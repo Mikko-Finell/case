@@ -44,13 +44,17 @@ The examples found in the demo folder are intended to show how various
 CA styles can be simulated using the CASE library. 
 
 Conways Life
+
 ![conway text](img/conway.png)
 
 Langtons Ant
+
 ![langton](img/langton.png)
 
 Foxes And Rabbits
+
 ![foxes](img/foxes.png)
 
 Wolframs rules
+
 ![wolfram](img/wolfram.png)
