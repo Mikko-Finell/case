@@ -30,14 +30,14 @@ truly and fully yours for any purpose in perpetuity.
 
 # Dependencies
 
-C++14
+C++14 or above.
 
 [SFML](https://github.com/SFML/SFML)
 
 # Installation
 
 1. Clone or download this repo.
-2. Run `sudo make install` or `sudo make demo` or just `sudo make`
+2. Run `sudo make install` or `make demo` or just `sudo make`
 
 # Demos
 
