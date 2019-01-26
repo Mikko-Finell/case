@@ -44,18 +44,18 @@ C++14 or above.
 The examples found in the demo folder are intended to show how various
 CA styles can be simulated using the CASE library. 
 
-###Conways Life
+### Conways Life
 
 ![conway text](img/conway.png)
 
-###Langtons Ant
+### Langtons Ant
 
 ![langton](img/langton.png)
 
-###Foxes And Rabbits
+### Foxes And Rabbits
 
 ![foxes](img/foxes.png)
 
-###Wolframs rules
+### Wolframs rules
 
 ![wolfram](img/wolfram.png)
