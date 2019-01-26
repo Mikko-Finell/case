@@ -31,6 +31,7 @@ truly and fully yours for any purpose in perpetuity.
 # Dependencies
 
 C++14
+
 [SFML](https://github.com/SFML/SFML)
 
 # Installation
