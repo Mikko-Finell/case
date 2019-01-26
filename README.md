@@ -1,4 +1,4 @@
-## CASE - Cellular Automata Simulation Engine
+# CASE - Cellular Automata Simulation Engine
 
 CASE is a header only library made for helping run CA-like simulations.
 The engine strives to achieve good performance mainly by using the 
@@ -23,39 +23,39 @@ Conway's Life, Wolframs rules, etc.
 destroyed, and can move around in the world. Demo examples: Foxes And Rabbits,
 Langton's ant.
 
-# License
+## License
 
 Public domain. My intent is that any code or ideas you find here are 
 truly and fully yours for any purpose in perpetuity.
 
-# Dependencies
+## Dependencies
 
 C++14 or above.
 
 [SFML](https://github.com/SFML/SFML)
 
-# Installation
+## Installation
 
 1. Clone or download this repo.
 2. Run `sudo make install` or `make demo` or just `sudo make`
 
-# Demos
+## Demos
 
 The examples found in the demo folder are intended to show how various
 CA styles can be simulated using the CASE library. 
 
-Conways Life
+###Conways Life
 
 ![conway text](img/conway.png)
 
-Langtons Ant
+###Langtons Ant
 
 ![langton](img/langton.png)
 
-Foxes And Rabbits
+###Foxes And Rabbits
 
 ![foxes](img/foxes.png)
 
-Wolframs rules
+###Wolframs rules
 
 ![wolfram](img/wolfram.png)
