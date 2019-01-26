@@ -1,14 +1,14 @@
 #include <cmath>
 
-#include "../quad.hpp"
-#include "../index.hpp"
-#include "../random.hpp"
-#include "../grid.hpp"
-#include "../cell.hpp"
-#include "../dynamic_sim.hpp"
+#include <CASE/quad.hpp>
+#include <CASE/index.hpp>
+#include <CASE/random.hpp>
+#include <CASE/grid.hpp>
+#include <CASE/cell.hpp>
+#include <CASE/dynamic_sim.hpp>
 
-#define COLUMNS 128
-#define ROWS 128
+#define COLUMNS 150
+#define ROWS 150
 #define CELL_SIZE 4
 #define CELL_LAYER 1
 #define ANT_LAYER 0
@@ -68,7 +68,7 @@ void Agent::draw(const int x, const int y, std::vector<sf::Vertex> & vs) const {
     vs.resize(i + 4);
     int r = (z?0:200), g = 0, b = 0, pad = 1;
     CASE::quad(x * CELL_SIZE, y * CELL_SIZE,
-            CELL_SIZE-pad, CELL_SIZE-pad, r,g,b, &vs[i]);
+            CELL_SIZE-(z?pad:0), CELL_SIZE-(z?pad:0), r,g,b, &vs[i]);
 }
 } // namespace Langton
 

@@ -1,13 +1,13 @@
-#include "../quad.hpp"
-#include "../index.hpp"
-#include "../random.hpp"
-#include "../grid.hpp"
-#include "../cell.hpp"
-#include "../dynamic_sim.hpp"
+#include <CASE/quad.hpp>
+#include <CASE/index.hpp>
+#include <CASE/random.hpp>
+#include <CASE/grid.hpp>
+#include <CASE/cell.hpp>
+#include <CASE/dynamic_sim.hpp>
 
-#define COLUMNS 256
-#define ROWS 192
-#define CELL_SIZE 4
+#define COLUMNS 300
+#define ROWS 300
+#define CELL_SIZE 2
 
 enum Type { Fox, Rabbit, Grass, None };
 

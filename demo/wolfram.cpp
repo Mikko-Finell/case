@@ -1,9 +1,9 @@
-#include "../random.hpp"
-#include "../neighbors.hpp"
-#include "../quad.hpp"
-#include "../grid.hpp"
-#include "../static_sim.hpp"
-#include "../random.hpp"
+#include <CASE/random.hpp>
+#include <CASE/neighbors.hpp>
+#include <CASE/quad.hpp>
+#include <CASE/grid.hpp>
+#include <CASE/static_sim.hpp>
+#include <CASE/random.hpp>
 
 #define COLUMNS 300
 #define ROWS 300
@@ -32,7 +32,8 @@ public:
             pattern = pattern | 0b010;
         if (neighbors(1, -1).live)
             pattern = pattern | 0b001;
-        static const int rules[7][8] = {
+        static const int rules[8][8] = {
+            { 0, 0, 0, 1, 1, 1, 1, 0 },
             { 0, 1, 1, 1, 1, 0, 0, 0 },
             { 0, 1, 0, 1, 1, 0, 1, 0 },
             { 1, 0, 0, 1, 0, 1, 1, 0 },
@@ -70,6 +71,23 @@ struct Wolframs_Rules {
     const sf::Color bgcolor = sf::Color{220, 220, 220};
 
     void init(Wolfram * agents) {
+        int index = 0;
+        for (auto y = 0; y < ROWS; y++) {
+            for (auto x = 0; x < COLUMNS; x++) {
+                auto & agent = agents[CASE::index(x, y, COLUMNS)];
+                agent = Wolfram{x, y};
+                agent.index = index++;
+            }
+        }
+        for (auto x = 0; x < COLUMNS; x++) {
+            auto & agent = agents[CASE::index(x, 1, COLUMNS)];
+            agent.scanline = true;
+        }
+        const auto x = COLUMNS / 2;
+        const auto y = 0;
+        auto & agent = agents[CASE::index(x, y, COLUMNS)];
+        agent.live = true;
+        /*
         static CASE::Uniform<0, 10> rand;
         int index = 0;
         for (auto y = 0; y < ROWS; y++) {
@@ -89,6 +107,7 @@ struct Wolframs_Rules {
             if (rand() < 3)
                 agent.live = true;
         }
+        */
     };
 
     void postprocessing(Wolfram * agents) {

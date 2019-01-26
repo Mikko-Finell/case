@@ -1,10 +1,10 @@
-#include "../quad.hpp"
-#include "../index.hpp"
-#include "../random.hpp"
-#include "../grid.hpp"
-#include "../cell.hpp"
-#include "../helper.hpp"
-#include "../static_sim.hpp"
+#include <CASE/quad.hpp>
+#include <CASE/index.hpp>
+#include <CASE/random.hpp>
+#include <CASE/grid.hpp>
+#include <CASE/cell.hpp>
+#include <CASE/helper.hpp>
+#include <CASE/static_sim.hpp>
 
 #define COLUMNS 512
 #define ROWS 512

@@ -1,12 +1,16 @@
-#include "../random.hpp"
-#include "../neighbors.hpp"
-#include "../quad.hpp"
-#include "../grid.hpp"
-#include "../static_sim.hpp"
+#include <CASE/random.hpp>
+#include <CASE/neighbors.hpp>
+#include <CASE/quad.hpp>
+#include <CASE/grid.hpp>
+#include <CASE/static_sim.hpp>
 
-#define COLUMNS 512
-#define ROWS 512
+#define COLUMNS 300
+#define ROWS 300
 #define CELL_SIZE 2
+
+int clamp(int x) {
+    return x > 255 ? 255 : x < 0 ? 0 : x;
+}
 
 class Life {
     int x, y;
@@ -14,6 +18,7 @@ class Life {
 public:
     bool live = false;
     int index = 0;
+    mutable int age = 0;
 
     Life(int _x = 0, int _y = 0) : x(CELL_SIZE * _x), y(CELL_SIZE * _y)
     {
@@ -29,16 +34,18 @@ public:
                 if (neighbors(x, y).live) count++;
             }
         }
-        if (live && (count < 2 || count > 3)) next.live = false;
-        else if (count == 3) next.live = true;
+        if (live && (count < 2 || count > 3)) {next.live = false;next.age=0;}
+        else if (count == 3) {next.live = true;}
+        next.age++;
     }
 
     void draw(sf::Vertex * vs) const {
         static constexpr int pad = 0;
         if (live)
-            CASE::quad(x, y, CELL_SIZE-pad, CELL_SIZE-pad, 0, 0, 0, vs);
+            CASE::quad(x, y, CELL_SIZE-pad, CELL_SIZE-pad, 255, 0, 0, vs);
         else
-            CASE::quad(x, y, CELL_SIZE-pad, CELL_SIZE-pad, 255, 255, 255, vs);
+            //CASE::quad(x, y, CELL_SIZE-pad, CELL_SIZE-pad, 255, 255, 255, vs);
+            CASE::quad(x, y, CELL_SIZE, CELL_SIZE, 255-clamp(age), 255-clamp(age), 255-clamp(age), vs);
     }
 };
 
@@ -63,7 +70,7 @@ struct GameOfLife {
         }
         const auto cx = COLUMNS/2;
         const auto cy = ROWS/2;
-        const auto distance = (COLUMNS+ROWS)/4;
+        const auto distance = (COLUMNS+ROWS)/8;
         static CASE::Uniform<0, 100> dist;
         for (auto y = 0; y < columns; y++) {
             for (auto x = 0; x < rows; x++) {

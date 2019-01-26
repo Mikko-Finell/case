@@ -1,8 +1,8 @@
-#include "../random.hpp"
-#include "../neighbors.hpp"
-#include "../quad.hpp"
-#include "../grid.hpp"
-#include "../static_sim.hpp"
+#include <CASE/random.hpp>
+#include <CASE/neighbors.hpp>
+#include <CASE/quad.hpp>
+#include <CASE/grid.hpp>
+#include <CASE/static_sim.hpp>
 
 #define COLUMNS 500
 #define ROWS 500
